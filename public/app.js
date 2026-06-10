@@ -4,6 +4,8 @@ const loginForm = document.querySelector("#loginForm");
 const accessCodeInput = document.querySelector("#accessCodeInput");
 const logoutBtn = document.querySelector("#logoutBtn");
 const form = document.querySelector("#jobForm");
+const railItems = [...document.querySelectorAll(".rail-item")];
+const toolPanes = [...document.querySelectorAll(".tool-pane")];
 const titleInput = document.querySelector("#titleInput");
 const projectNameLabel = document.querySelector("#projectNameLabel");
 const exportTopBtn = document.querySelector("#exportTopBtn");
@@ -52,6 +54,12 @@ const templateInput = document.querySelector("#templateInput");
 const introTextInput = document.querySelector("#introTextInput");
 const outroTextInput = document.querySelector("#outroTextInput");
 const templateSecondsInput = document.querySelector("#templateSecondsInput");
+const quickTextInput = document.querySelector("#quickTextInput");
+const applyQuickTextBtn = document.querySelector("#applyQuickTextBtn");
+const libraryCaptionText = document.querySelector("#libraryCaptionText");
+const libraryAutoCaptionBtn = document.querySelector("#libraryAutoCaptionBtn");
+const transcriptText = document.querySelector("#transcriptText");
+const transcriptToCaptionsBtn = document.querySelector("#transcriptToCaptionsBtn");
 
 const accessCodeKey = "cloud-video-studio-access-code";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
@@ -88,6 +96,10 @@ loginForm.addEventListener("submit", async (event) => {
 logoutBtn.addEventListener("click", () => {
   localStorage.removeItem(accessCodeKey);
   location.reload();
+});
+
+railItems.forEach((item) => {
+  item.addEventListener("click", () => activateTool(item.dataset.tool));
 });
 
 sourceInput.addEventListener("change", () => {
@@ -142,6 +154,49 @@ addSubtitleBtn.addEventListener("click", () => {
   renderSubtitles();
 });
 autoCaptionBtn.addEventListener("click", autoSplitCaptions);
+libraryAutoCaptionBtn.addEventListener("click", () => {
+  autoCaptionText.value = libraryCaptionText.value;
+  autoSplitCaptions();
+  activateTool("media");
+});
+transcriptToCaptionsBtn.addEventListener("click", () => {
+  autoCaptionText.value = transcriptText.value;
+  libraryCaptionText.value = transcriptText.value;
+  autoSplitCaptions();
+  activateTool("captions");
+});
+applyQuickTextBtn.addEventListener("click", () => {
+  captionInput.value = quickTextInput.value.trim();
+  updateCaption();
+});
+
+document.querySelectorAll("[data-template-choice]").forEach((button) => {
+  button.addEventListener("click", () => {
+    templateInput.value = button.dataset.templateChoice;
+  });
+});
+
+document.querySelectorAll("[data-sticker-position]").forEach((button) => {
+  button.addEventListener("click", () => {
+    stickerPositionInput.value = button.dataset.stickerPosition;
+  });
+});
+
+document.querySelectorAll("[data-volume]").forEach((button) => {
+  button.addEventListener("click", () => {
+    volumeInput.value = button.dataset.volume;
+    muteInput.checked = Number(button.dataset.volume) === 0;
+    updatePreviewAudio();
+  });
+});
+
+document.querySelectorAll("[data-effect]").forEach((button) => {
+  button.addEventListener("click", () => applyEffect(button.dataset.effect));
+});
+
+document.querySelectorAll("[data-filter]").forEach((button) => {
+  button.addEventListener("click", () => applyFilter(button.dataset.filter));
+});
 
 [brightnessInput, contrastInput, saturationInput].forEach((input) => {
   input.addEventListener("input", updatePreviewEffects);
@@ -245,6 +300,11 @@ function renderRunner(runner) {
   installBox.classList.remove("connected");
   installBox.querySelector("strong").textContent = "本地渲染助手未连接";
   installBox.querySelector("span").textContent = "如果导出任务一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 start-runner.cmd。";
+}
+
+function activateTool(name) {
+  railItems.forEach((item) => item.classList.toggle("active", item.dataset.tool === name));
+  toolPanes.forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === name));
 }
 
 function renderJobs(jobs) {
@@ -401,6 +461,34 @@ function updatePreviewEffects() {
 function updatePreviewAudio() {
   previewVideo.volume = Math.max(0, Math.min(1, Number(volumeInput.value)));
   previewVideo.muted = muteInput.checked;
+}
+
+function applyEffect(effect) {
+  const presets = {
+    bright: { brightness: 0.15, contrast: 1.05, saturation: 1.1 },
+    contrast: { brightness: 0.02, contrast: 1.35, saturation: 1.05 },
+    soft: { brightness: 0.08, contrast: 0.85, saturation: 0.9 },
+    reset: { brightness: 0, contrast: 1, saturation: 1 }
+  };
+  const preset = presets[effect] || presets.reset;
+  brightnessInput.value = preset.brightness;
+  contrastInput.value = preset.contrast;
+  saturationInput.value = preset.saturation;
+  updatePreviewEffects();
+}
+
+function applyFilter(filter) {
+  const presets = {
+    vivid: { brightness: 0.03, contrast: 1.12, saturation: 1.45 },
+    mono: { brightness: 0, contrast: 1.08, saturation: 0.15 },
+    warm: { brightness: 0.06, contrast: 1.02, saturation: 1.22 },
+    reset: { brightness: 0, contrast: 1, saturation: 1 }
+  };
+  const preset = presets[filter] || presets.reset;
+  brightnessInput.value = preset.brightness;
+  contrastInput.value = preset.contrast;
+  saturationInput.value = preset.saturation;
+  updatePreviewEffects();
 }
 
 function syncProjectTitle() {

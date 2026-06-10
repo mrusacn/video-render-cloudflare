@@ -257,6 +257,53 @@ p {
   gap: 9px;
 }
 
+.tool-pane {
+  display: none;
+}
+
+.tool-pane.active {
+  display: grid;
+  gap: 14px;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.choice-card {
+  min-height: 58px;
+  border: 1px solid #343945;
+  border-radius: 8px;
+  background: #262a34;
+  color: #eef3f8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.choice-card:hover {
+  border-color: #1ed7f0;
+  color: #1ed7f0;
+}
+
+.quick-text {
+  display: grid;
+  gap: 10px;
+}
+
+.tool-pane textarea {
+  width: 100%;
+  border: 1px solid #333844;
+  border-radius: 7px;
+  background: #20232b;
+  color: #fff;
+  padding: 9px 10px;
+  outline: none;
+  font-size: 12px;
+  resize: vertical;
+}
+
 .asset-thumb {
   min-width: 0;
   display: grid;

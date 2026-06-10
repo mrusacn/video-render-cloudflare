@@ -25,15 +25,15 @@
       <section id="studioView" class="studio-view hidden">
         <aside class="rail">
           <div class="brand-mark">CC</div>
-          <button class="rail-item active" type="button"><span>◎</span>Media</button>
-          <button class="rail-item" type="button"><span>▣</span>Templates</button>
-          <button class="rail-item" type="button"><span>✦</span>Elements</button>
-          <button class="rail-item" type="button"><span>♪</span>Audio</button>
-          <button class="rail-item" type="button"><span>T</span>Text</button>
-          <button class="rail-item" type="button"><span>≡</span>Captions</button>
-          <button class="rail-item" type="button"><span>✂</span>Transcript</button>
-          <button class="rail-item" type="button"><span>☆</span>Effects</button>
-          <button class="rail-item" type="button"><span>◇</span>Filters</button>
+          <button class="rail-item active" data-tool="media" type="button"><span>◎</span>Media</button>
+          <button class="rail-item" data-tool="templates" type="button"><span>▣</span>Templates</button>
+          <button class="rail-item" data-tool="elements" type="button"><span>✦</span>Elements</button>
+          <button class="rail-item" data-tool="audio" type="button"><span>♪</span>Audio</button>
+          <button class="rail-item" data-tool="text" type="button"><span>T</span>Text</button>
+          <button class="rail-item" data-tool="captions" type="button"><span>≡</span>Captions</button>
+          <button class="rail-item" data-tool="transcript" type="button"><span>✂</span>Transcript</button>
+          <button class="rail-item" data-tool="effects" type="button"><span>☆</span>Effects</button>
+          <button class="rail-item" data-tool="filters" type="button"><span>◇</span>Filters</button>
         </aside>
 
         <aside class="library-panel">
@@ -43,6 +43,7 @@
             <button id="logoutBtn" class="tiny-button" type="button">退出</button>
           </div>
 
+          <section class="tool-pane active" data-pane="media">
           <section class="upload-box">
             <label class="upload-button">
               上传视频
@@ -99,6 +100,78 @@
               <div class="thumb-preview template-thumb">T</div>
               <span id="backgroundAssetName">背景图片</span>
             </article>
+          </section>
+          </section>
+
+          <section class="tool-pane" data-pane="templates">
+            <h3>模板</h3>
+            <div class="choice-grid">
+              <button class="choice-card" data-template-choice="clean" type="button">简洁标题</button>
+              <button class="choice-card" data-template-choice="dark" type="button">黑底白字</button>
+              <button class="choice-card" data-template-choice="brand" type="button">品牌色</button>
+              <button class="choice-card" data-template-choice="none" type="button">无模板</button>
+            </div>
+          </section>
+
+          <section class="tool-pane" data-pane="elements">
+            <h3>贴纸元素</h3>
+            <div class="choice-grid">
+              <button class="choice-card" data-sticker-position="top-left" type="button">左上角</button>
+              <button class="choice-card" data-sticker-position="top-right" type="button">右上角</button>
+              <button class="choice-card" data-sticker-position="bottom-left" type="button">左下角</button>
+              <button class="choice-card" data-sticker-position="bottom-right" type="button">右下角</button>
+              <button class="choice-card" data-sticker-position="center" type="button">居中</button>
+            </div>
+          </section>
+
+          <section class="tool-pane" data-pane="audio">
+            <h3>音频</h3>
+            <div class="choice-grid">
+              <button class="choice-card" data-volume="0" type="button">静音</button>
+              <button class="choice-card" data-volume="0.5" type="button">轻声</button>
+              <button class="choice-card" data-volume="1" type="button">正常</button>
+              <button class="choice-card" data-volume="1.5" type="button">增强</button>
+            </div>
+          </section>
+
+          <section class="tool-pane" data-pane="text">
+            <h3>文字</h3>
+            <div class="quick-text">
+              <input id="quickTextInput" placeholder="输入标题字幕" />
+              <button id="applyQuickTextBtn" class="secondary-button" type="button">应用到标题字幕</button>
+            </div>
+          </section>
+
+          <section class="tool-pane" data-pane="captions">
+            <h3>字幕</h3>
+            <textarea id="libraryCaptionText" rows="5" placeholder="粘贴文案，自动拆成字幕"></textarea>
+            <button id="libraryAutoCaptionBtn" class="secondary-button" type="button">生成字幕轨道</button>
+          </section>
+
+          <section class="tool-pane" data-pane="transcript">
+            <h3>文稿</h3>
+            <textarea id="transcriptText" rows="8" placeholder="这里放口播文稿。当前版本可一键同步到自动字幕文案。"></textarea>
+            <button id="transcriptToCaptionsBtn" class="secondary-button" type="button">同步到字幕</button>
+          </section>
+
+          <section class="tool-pane" data-pane="effects">
+            <h3>效果</h3>
+            <div class="choice-grid">
+              <button class="choice-card" data-effect="bright" type="button">明亮</button>
+              <button class="choice-card" data-effect="contrast" type="button">高对比</button>
+              <button class="choice-card" data-effect="soft" type="button">柔和</button>
+              <button class="choice-card" data-effect="reset" type="button">重置</button>
+            </div>
+          </section>
+
+          <section class="tool-pane" data-pane="filters">
+            <h3>滤镜</h3>
+            <div class="choice-grid">
+              <button class="choice-card" data-filter="vivid" type="button">鲜艳</button>
+              <button class="choice-card" data-filter="mono" type="button">低饱和</button>
+              <button class="choice-card" data-filter="warm" type="button">暖色</button>
+              <button class="choice-card" data-filter="reset" type="button">原图</button>
+            </div>
           </section>
         </aside>
 
