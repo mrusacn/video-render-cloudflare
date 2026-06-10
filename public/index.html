@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cloud Video Studio</title>
+    <title>CloudCut Studio</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <section id="loginView" class="login-view">
         <div class="login-card">
-          <h1>Cloud Video Studio</h1>
+          <h1>CloudCut Studio</h1>
           <p>登录后直接在网页剪辑，导出任务交给客户电脑上的本地渲染助手。</p>
           <form id="loginForm" class="login-form">
             <label>
@@ -23,54 +23,158 @@
       </section>
 
       <section id="studioView" class="studio-view hidden">
-        <header class="topbar">
-          <div>
-            <h1>Cloud Video Studio</h1>
-            <p>网页负责剪辑和排队，本地渲染助手负责导出成片。</p>
-          </div>
-          <div class="topbar-actions">
-            <span id="runnerState" class="state-pill">检测本地助手</span>
-            <button id="logoutBtn" class="ghost-button" type="button">退出</button>
-          </div>
-        </header>
+        <aside class="rail">
+          <div class="brand-mark">CC</div>
+          <button class="rail-item active" type="button"><span>◎</span>Media</button>
+          <button class="rail-item" type="button"><span>▣</span>Templates</button>
+          <button class="rail-item" type="button"><span>✦</span>Elements</button>
+          <button class="rail-item" type="button"><span>♪</span>Audio</button>
+          <button class="rail-item" type="button"><span>T</span>Text</button>
+          <button class="rail-item" type="button"><span>≡</span>Captions</button>
+          <button class="rail-item" type="button"><span>✂</span>Transcript</button>
+          <button class="rail-item" type="button"><span>☆</span>Effects</button>
+          <button class="rail-item" type="button"><span>◇</span>Filters</button>
+        </aside>
 
-        <section class="panel asset-dock">
-          <div class="asset-dock-title">
-            <h2>素材导入</h2>
-            <p>统一管理视频、图片贴纸和背景音乐路径。</p>
+        <aside class="library-panel">
+          <div class="user-row">
+            <div class="avatar">U</div>
+            <strong id="projectNameLabel">Cloud video project</strong>
+            <button id="logoutBtn" class="tiny-button" type="button">退出</button>
           </div>
-          <div class="asset-grid">
-            <label>
-              视频素材
+
+          <section class="upload-box">
+            <label class="upload-button">
+              上传视频
               <input id="sourceInput" name="source" type="file" accept="video/*" />
             </label>
-            <label>
+            <label class="path-field">
               本地视频路径
-              <input id="sourcePathInput" name="sourcePath" placeholder="例如：C:\Users\Administrator\Videos\demo.mp4" />
+              <input id="sourcePathInput" name="sourcePath" placeholder="C:\Users\Administrator\Videos\demo.mp4" />
             </label>
+          </section>
+
+          <section class="asset-card">
+            <h3>素材导入</h3>
             <label>
               贴纸/图片路径
-              <input id="stickerPathInput" name="stickerPath" placeholder="例如：C:\Users\Administrator\Pictures\logo.png" />
+              <input id="stickerPathInput" name="stickerPath" placeholder="C:\Users\Administrator\Pictures\logo.png" />
             </label>
             <label>
               背景音乐路径
-              <input id="musicPathInput" name="musicPath" placeholder="例如：C:\Users\Administrator\Music\bgm.mp3" />
+              <input id="musicPathInput" name="musicPath" placeholder="C:\Users\Administrator\Music\bgm.mp3" />
             </label>
-          </div>
+          </section>
+
+          <section class="asset-grid">
+            <article class="asset-thumb selected">
+              <div class="thumb-preview video-thumb">▶</div>
+              <span id="videoAssetName">等待上传</span>
+            </article>
+            <article class="asset-thumb">
+              <div class="thumb-preview music-thumb">♪</div>
+              <span>背景音乐</span>
+            </article>
+            <article class="asset-thumb">
+              <div class="thumb-preview sticker-thumb">✦</div>
+              <span>贴纸图片</span>
+            </article>
+            <article class="asset-thumb">
+              <div class="thumb-preview template-thumb">T</div>
+              <span>片头片尾</span>
+            </article>
+          </section>
+        </aside>
+
+        <section class="editor-main">
+          <header class="topbar">
+            <div class="project-title">
+              <span class="cloud-dot">☁</span>
+              <input id="titleInput" name="title" maxlength="80" value="20260610_project" />
+            </div>
+            <div class="topbar-center">
+              <button class="tool-button" type="button">⌁</button>
+              <button class="tool-button active" type="button">▶</button>
+              <select id="zoomSelect" class="zoom-select">
+                <option>100%</option>
+                <option>75%</option>
+                <option>50%</option>
+              </select>
+              <button class="tool-button" type="button">↶</button>
+              <button class="tool-button" type="button">↷</button>
+            </div>
+            <div class="topbar-actions">
+              <span id="runnerState" class="state-pill">检测本地助手</span>
+              <button id="refreshBtn" class="ghost-button" type="button">刷新</button>
+              <button id="exportTopBtn" class="primary-button" type="button">Export</button>
+            </div>
+          </header>
+
+          <section class="stage-area">
+            <button class="ratio-chip" type="button">Ratio</button>
+            <div id="previewFrame" class="preview-frame vertical">
+              <video id="previewVideo" controls playsinline></video>
+              <div id="captionOverlay" class="caption-overlay">字幕预览</div>
+              <div id="emptyPreview" class="empty-preview">选择本地视频后在这里预览</div>
+            </div>
+            <p id="previewMeta" class="preview-meta">还没有选择视频素材</p>
+          </section>
+
+          <section class="timeline-panel">
+            <div class="timeline-toolbar">
+              <div class="timeline-tools">
+                <button class="icon-button" type="button">⌫</button>
+                <button class="icon-button" type="button">✂</button>
+                <button class="icon-button" type="button">AI</button>
+                <button class="icon-button" type="button">⚑</button>
+              </div>
+              <div class="transport">
+                <button class="play-button" type="button">▶</button>
+                <strong>00:00:00</strong>
+                <span id="timelineDuration">30s</span>
+              </div>
+              <div class="timeline-zoom">− ━━━━━ ＋</div>
+            </div>
+            <div class="timeline-ruler">
+              <span>00:00</span><span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span><span>10:00</span>
+            </div>
+            <div class="timeline-body">
+              <div class="playhead"></div>
+              <div class="timeline-lanes">
+                <div class="lane drop-lane"><span>Drag and drop media here</span></div>
+                <div class="lane video-lane">
+                  <span class="lane-label">视频</span>
+                  <div id="clipBar" class="clip-bar"></div>
+                </div>
+                <div class="lane subtitle-lane">
+                  <span class="lane-label">字幕</span>
+                  <div id="subtitleBars" class="subtitle-bars"></div>
+                </div>
+                <div class="lane audio-lane">
+                  <span class="lane-label">音频</span>
+                  <div class="audio-wave">▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥</div>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
 
-        <section class="workspace">
-          <form id="jobForm" class="panel editor-panel">
-            <div class="panel-title">
-              <h2>视频编辑</h2>
-              <p>裁剪片段、设置画面、字幕、贴纸和声音。</p>
+        <aside class="quick-tools">
+          <button type="button">♬<span>Basic</span></button>
+          <button type="button">◉<span>Voice</span></button>
+          <button type="button">↯<span>Speed</span></button>
+        </aside>
+
+        <form id="jobForm" class="inspector-panel">
+          <div class="panel-title">
+            <h2>属性</h2>
+            <p>设置剪辑、字幕、贴纸、声音和导出。</p>
+          </div>
+
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>剪辑</h3>
             </div>
-
-            <label>
-              项目名称
-              <input id="titleInput" name="title" maxlength="80" required placeholder="例如：口播短视频 01" />
-            </label>
-
             <div class="inline-fields">
               <label>
                 开始秒数
@@ -81,7 +185,6 @@
                 <input id="trimEndInput" name="trimEnd" type="number" min="0" step="0.1" placeholder="自动" />
               </label>
             </div>
-
             <label>
               导出规格
               <select id="presetInput" name="preset">
@@ -90,176 +193,103 @@
                 <option value="landscape-1080p">横屏 1080p</option>
               </select>
             </label>
+          </section>
 
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>字幕</h3>
+              <button id="addSubtitleBtn" class="mini-button" type="button">添加</button>
+            </div>
             <label>
-              字幕/标题
+              标题字幕
               <input id="captionInput" name="caption" maxlength="120" placeholder="显示在视频上的文字" />
             </label>
+            <label>
+              自动字幕文案
+              <textarea id="autoCaptionText" rows="3" placeholder="粘贴口播稿或字幕文本，点击自动拆分"></textarea>
+            </label>
+            <button id="autoCaptionBtn" class="secondary-button" type="button">自动拆分字幕</button>
+            <div id="subtitleList" class="subtitle-list"></div>
+          </section>
 
-            <section class="tool-block">
-              <div class="tool-block-header">
-                <div>
-                  <h3>字幕轨道</h3>
-                  <p>添加多段字幕，导出时会压进视频。</p>
-                </div>
-                <button id="addSubtitleBtn" class="mini-button" type="button">添加</button>
-              </div>
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>贴纸</h3>
+            </div>
+            <div class="inline-fields">
               <label>
-                自动字幕文案
-                <textarea id="autoCaptionText" rows="3" placeholder="粘贴口播稿或字幕文本，点击自动拆分"></textarea>
-              </label>
-              <button id="autoCaptionBtn" class="secondary-button" type="button">自动拆分字幕</button>
-              <div id="subtitleList" class="subtitle-list"></div>
-            </section>
-
-            <section class="tool-block">
-              <div class="tool-block-header">
-                <div>
-                  <h3>贴纸/图片</h3>
-                  <p>贴纸路径在顶部素材栏导入，这里设置位置和大小。</p>
-                </div>
-              </div>
-              <div class="inline-fields">
-                <label>
-                  位置
-                  <select id="stickerPositionInput" name="stickerPosition">
-                    <option value="top-right">右上</option>
-                    <option value="top-left">左上</option>
-                    <option value="bottom-right">右下</option>
-                    <option value="bottom-left">左下</option>
-                    <option value="center">居中</option>
-                  </select>
-                </label>
-                <label>
-                  大小
-                  <input id="stickerScaleInput" name="stickerScale" type="range" min="8" max="60" step="1" value="22" />
-                </label>
-              </div>
-            </section>
-
-            <section class="tool-block">
-              <div class="tool-block-header">
-                <div>
-                  <h3>画面调色</h3>
-                  <p>调整导出视频的基础观感。</p>
-                </div>
-              </div>
-              <label>
-                亮度
-                <input id="brightnessInput" name="brightness" type="range" min="-0.5" max="0.5" step="0.05" value="0" />
-              </label>
-              <label>
-                对比度
-                <input id="contrastInput" name="contrast" type="range" min="0.5" max="2" step="0.05" value="1" />
-              </label>
-              <label>
-                饱和度
-                <input id="saturationInput" name="saturation" type="range" min="0" max="2" step="0.05" value="1" />
-              </label>
-            </section>
-
-            <section class="tool-block">
-              <div class="tool-block-header">
-                <div>
-                  <h3>音频</h3>
-                  <p>控制原视频声音。</p>
-                </div>
-              </div>
-              <label>
-                音量
-                <input id="volumeInput" name="volume" type="range" min="0" max="2" step="0.05" value="1" />
-              </label>
-              <label class="check-row">
-                <input id="muteInput" name="muted" type="checkbox" />
-                静音导出
-              </label>
-              <label>
-                背景音乐音量
-                <input id="musicVolumeInput" name="musicVolume" type="range" min="0" max="2" step="0.05" value="0.6" />
-              </label>
-            </section>
-
-            <section class="tool-block">
-              <div class="tool-block-header">
-                <div>
-                  <h3>片头片尾</h3>
-                  <p>导出时在开头和结尾覆盖模板文字。</p>
-                </div>
-              </div>
-              <label>
-                模板
-                <select id="templateInput" name="template">
-                  <option value="none">无</option>
-                  <option value="clean">简洁标题</option>
-                  <option value="dark">黑底白字</option>
-                  <option value="brand">品牌色</option>
+                位置
+                <select id="stickerPositionInput" name="stickerPosition">
+                  <option value="top-right">右上</option>
+                  <option value="top-left">左上</option>
+                  <option value="bottom-right">右下</option>
+                  <option value="bottom-left">左下</option>
+                  <option value="center">居中</option>
                 </select>
               </label>
               <label>
-                片头文字
-                <input id="introTextInput" name="introText" maxlength="80" placeholder="视频开头显示" />
+                大小
+                <input id="stickerScaleInput" name="stickerScale" type="range" min="8" max="60" step="1" value="22" />
               </label>
-              <label>
-                片尾文字
-                <input id="outroTextInput" name="outroText" maxlength="80" placeholder="视频结尾显示" />
-              </label>
-              <label>
-                显示秒数
-                <input id="templateSecondsInput" name="templateSeconds" type="number" min="0.5" max="8" step="0.5" value="2.5" />
-              </label>
-            </section>
-
-            <label>
-              工程说明
-              <textarea id="notesInput" name="notes" rows="4" placeholder="背景音乐、转场、素材位置、客户要求..."></textarea>
-            </label>
-
-            <button class="primary-button" type="submit">导出视频</button>
-          </form>
-
-          <section class="panel preview-panel">
-            <div class="preview-toolbar">
-              <div>
-                <h2>预览</h2>
-                <p id="previewMeta">还没有选择视频素材</p>
-              </div>
-              <button id="refreshBtn" class="ghost-button" type="button">刷新任务</button>
-            </div>
-            <div id="previewFrame" class="preview-frame vertical">
-              <video id="previewVideo" controls playsinline></video>
-              <div id="captionOverlay" class="caption-overlay">字幕预览</div>
-              <div id="emptyPreview" class="empty-preview">选择本地视频后在这里预览</div>
-            </div>
-            <div class="timeline">
-              <div class="timeline-head">
-                <strong>时间线</strong>
-                <span id="timelineDuration">30s</span>
-              </div>
-              <div class="timeline-track video-track">
-                <span>视频</span>
-                <div id="clipBar" class="clip-bar"></div>
-              </div>
-              <div class="timeline-track subtitle-track">
-                <span>字幕</span>
-                <div id="subtitleBars" class="subtitle-bars"></div>
-              </div>
-            </div>
-            <div class="install-box" id="installBox">
-              <strong>本地渲染助手未连接</strong>
-              <span>如果点击导出后一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 start-runner.cmd。</span>
             </div>
           </section>
 
-          <section class="panel queue-panel">
-            <div class="panel-title queue-title">
-              <div>
-                <h2>导出队列</h2>
-                <p id="summaryText">正在读取任务...</p>
-              </div>
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>画面</h3>
+            </div>
+            <label>亮度 <input id="brightnessInput" name="brightness" type="range" min="-0.5" max="0.5" step="0.05" value="0" /></label>
+            <label>对比度 <input id="contrastInput" name="contrast" type="range" min="0.5" max="2" step="0.05" value="1" /></label>
+            <label>饱和度 <input id="saturationInput" name="saturation" type="range" min="0" max="2" step="0.05" value="1" /></label>
+          </section>
+
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>音频</h3>
+            </div>
+            <label>音量 <input id="volumeInput" name="volume" type="range" min="0" max="2" step="0.05" value="1" /></label>
+            <label class="check-row"><input id="muteInput" name="muted" type="checkbox" />静音导出</label>
+            <label>背景音乐音量 <input id="musicVolumeInput" name="musicVolume" type="range" min="0" max="2" step="0.05" value="0.6" /></label>
+          </section>
+
+          <section class="tool-block">
+            <div class="tool-block-header">
+              <h3>片头片尾</h3>
+            </div>
+            <label>
+              模板
+              <select id="templateInput" name="template">
+                <option value="none">无</option>
+                <option value="clean">简洁标题</option>
+                <option value="dark">黑底白字</option>
+                <option value="brand">品牌色</option>
+              </select>
+            </label>
+            <label>片头文字 <input id="introTextInput" name="introText" maxlength="80" placeholder="视频开头显示" /></label>
+            <label>片尾文字 <input id="outroTextInput" name="outroText" maxlength="80" placeholder="视频结尾显示" /></label>
+            <label>显示秒数 <input id="templateSecondsInput" name="templateSeconds" type="number" min="0.5" max="8" step="0.5" value="2.5" /></label>
+          </section>
+
+          <label>
+            工程说明
+            <textarea id="notesInput" name="notes" rows="3" placeholder="转场、素材位置、客户要求..."></textarea>
+          </label>
+
+          <div class="install-box" id="installBox">
+            <strong>本地渲染助手未连接</strong>
+            <span>如果导出任务一直排队，请运行 start-runner.cmd。</span>
+          </div>
+
+          <button class="primary-button export-wide" type="submit">导出视频</button>
+
+          <section class="queue-panel">
+            <div class="queue-title">
+              <h2>导出队列</h2>
+              <p id="summaryText">正在读取任务...</p>
             </div>
             <div id="jobsList" class="jobs-list"></div>
           </section>
-        </section>
+        </form>
       </section>
     </main>
 

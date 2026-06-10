@@ -4,12 +4,16 @@ const loginForm = document.querySelector("#loginForm");
 const accessCodeInput = document.querySelector("#accessCodeInput");
 const logoutBtn = document.querySelector("#logoutBtn");
 const form = document.querySelector("#jobForm");
+const titleInput = document.querySelector("#titleInput");
+const projectNameLabel = document.querySelector("#projectNameLabel");
+const exportTopBtn = document.querySelector("#exportTopBtn");
 const jobsList = document.querySelector("#jobsList");
 const summaryText = document.querySelector("#summaryText");
 const runnerState = document.querySelector("#runnerState");
 const refreshBtn = document.querySelector("#refreshBtn");
 const sourceInput = document.querySelector("#sourceInput");
 const sourcePathInput = document.querySelector("#sourcePathInput");
+const videoAssetName = document.querySelector("#videoAssetName");
 const trimStartInput = document.querySelector("#trimStartInput");
 const trimEndInput = document.querySelector("#trimEndInput");
 const previewVideo = document.querySelector("#previewVideo");
@@ -88,17 +92,21 @@ sourceInput.addEventListener("change", () => {
   previewVideo.classList.add("ready");
   emptyPreview.classList.add("hidden");
   previewMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+  videoAssetName.textContent = file.name;
   sourcePathInput.placeholder = `请粘贴这个文件在客户电脑里的完整路径：${file.name}`;
-  if (!document.querySelector("#titleInput").value) {
-    document.querySelector("#titleInput").value = file.name.replace(/\.[^.]+$/, "");
+  if (!titleInput.value) {
+    titleInput.value = file.name.replace(/\.[^.]+$/, "");
   }
+  syncProjectTitle();
   previewVideo.addEventListener("loadedmetadata", renderTimeline, { once: true });
 });
 
 captionInput.addEventListener("input", updateCaption);
+titleInput.addEventListener("input", syncProjectTitle);
 previewVideo.addEventListener("timeupdate", updateCaption);
 presetInput.addEventListener("change", updatePresetFrame);
 refreshBtn.addEventListener("click", refreshAll);
+exportTopBtn.addEventListener("click", () => form.requestSubmit());
 addSubtitleBtn.addEventListener("click", () => {
   const last = subtitles.at(-1);
   const start = last ? Number(last.end || 0) : 0;
@@ -159,6 +167,7 @@ async function showStudio() {
   updatePresetFrame();
   updatePreviewEffects();
   updatePreviewAudio();
+  syncProjectTitle();
   renderSubtitles();
   await refreshAll();
   setInterval(refreshAll, 3000);
@@ -362,6 +371,11 @@ function updatePreviewEffects() {
 function updatePreviewAudio() {
   previewVideo.volume = Math.max(0, Math.min(1, Number(volumeInput.value)));
   previewVideo.muted = muteInput.checked;
+}
+
+function syncProjectTitle() {
+  const value = titleInput.value.trim() || "Cloud video project";
+  projectNameLabel.textContent = value;
 }
 
 function autoSplitCaptions() {
