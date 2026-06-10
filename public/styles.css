@@ -172,7 +172,8 @@ h3 {
 }
 
 .mini-button,
-.icon-button {
+.icon-button,
+.secondary-button {
   border: 0;
   border-radius: 6px;
   cursor: pointer;
@@ -194,6 +195,14 @@ h3 {
   color: #4a5a6d;
   font-size: 18px;
   line-height: 1;
+}
+
+.secondary-button {
+  min-height: 36px;
+  padding: 0 12px;
+  background: #24364b;
+  color: #fff;
+  font-size: 13px;
 }
 
 .subtitle-list {
@@ -236,6 +245,11 @@ textarea {
   color: var(--ink);
   padding: 10px 11px;
   outline: none;
+}
+
+input[type="range"] {
+  padding: 0;
+  accent-color: var(--accent);
 }
 
 textarea {
@@ -414,6 +428,13 @@ textarea:focus {
   font-size: 11px;
   line-height: 16px;
   white-space: nowrap;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.subtitle-bar:active {
+  cursor: grabbing;
 }
 
 .queue-panel {

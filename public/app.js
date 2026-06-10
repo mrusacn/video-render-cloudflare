@@ -21,6 +21,8 @@ const captionOverlay = document.querySelector("#captionOverlay");
 const presetInput = document.querySelector("#presetInput");
 const installBox = document.querySelector("#installBox");
 const addSubtitleBtn = document.querySelector("#addSubtitleBtn");
+const autoCaptionBtn = document.querySelector("#autoCaptionBtn");
+const autoCaptionText = document.querySelector("#autoCaptionText");
 const subtitleList = document.querySelector("#subtitleList");
 const subtitleBars = document.querySelector("#subtitleBars");
 const timelineDuration = document.querySelector("#timelineDuration");
@@ -30,6 +32,15 @@ const contrastInput = document.querySelector("#contrastInput");
 const saturationInput = document.querySelector("#saturationInput");
 const volumeInput = document.querySelector("#volumeInput");
 const muteInput = document.querySelector("#muteInput");
+const stickerPathInput = document.querySelector("#stickerPathInput");
+const stickerPositionInput = document.querySelector("#stickerPositionInput");
+const stickerScaleInput = document.querySelector("#stickerScaleInput");
+const musicPathInput = document.querySelector("#musicPathInput");
+const musicVolumeInput = document.querySelector("#musicVolumeInput");
+const templateInput = document.querySelector("#templateInput");
+const introTextInput = document.querySelector("#introTextInput");
+const outroTextInput = document.querySelector("#outroTextInput");
+const templateSecondsInput = document.querySelector("#templateSecondsInput");
 
 const accessCodeKey = "cloud-video-studio-access-code";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
@@ -94,6 +105,7 @@ addSubtitleBtn.addEventListener("click", () => {
   subtitles.push({ id: makeId(), start, end: start + 3, text: "" });
   renderSubtitles();
 });
+autoCaptionBtn.addEventListener("click", autoSplitCaptions);
 
 [brightnessInput, contrastInput, saturationInput].forEach((input) => {
   input.addEventListener("input", updatePreviewEffects);
@@ -123,6 +135,15 @@ form.addEventListener("submit", async (event) => {
   payload.saturation = Number(saturationInput.value);
   payload.volume = Number(volumeInput.value);
   payload.muted = muteInput.checked;
+  payload.stickerPath = stickerPathInput.value.trim();
+  payload.stickerPosition = stickerPositionInput.value;
+  payload.stickerScale = Number(stickerScaleInput.value);
+  payload.musicPath = musicPathInput.value.trim();
+  payload.musicVolume = Number(musicVolumeInput.value);
+  payload.template = templateInput.value;
+  payload.introText = introTextInput.value.trim();
+  payload.outroText = outroTextInput.value.trim();
+  payload.templateSeconds = Number(templateSecondsInput.value);
   payload.localAssetRequired = Boolean(selectedSource || sourcePath);
   await api("/api/jobs", {
     method: "POST",
@@ -219,6 +240,9 @@ function renderJobs(jobs) {
             ${edit.sourcePath ? `<div class="job-notes">素材路径：${escapeHtml(edit.sourcePath)}</div>` : ""}
             ${edit.caption ? `<div class="job-notes">标题字幕：${escapeHtml(edit.caption)}</div>` : ""}
             ${edit.subtitles?.length ? `<div class="job-notes">字幕段数：${edit.subtitles.length}</div>` : ""}
+            ${edit.stickerPath ? `<div class="job-notes">贴纸：${escapeHtml(edit.stickerPath)}</div>` : ""}
+            ${edit.musicPath ? `<div class="job-notes">背景音乐：${escapeHtml(edit.musicPath)}</div>` : ""}
+            ${edit.template && edit.template !== "none" ? `<div class="job-notes">模板：${escapeHtml(edit.template)}</div>` : ""}
             ${job.notes ? `<div class="job-notes">${escapeHtml(job.notes)}</div>` : ""}
             <div class="progress-shell" aria-label="渲染进度">
               <div class="progress-bar" style="--progress: ${progress}%"></div>
@@ -293,13 +317,21 @@ function renderTimeline() {
   const duration = Math.max(1, getDuration());
   timelineDuration.textContent = `${duration}s`;
   clipBar.style.width = "100%";
-  subtitleBars.innerHTML = getCleanSubtitles()
+  subtitleBars.innerHTML = subtitles
+    .map((subtitle) => ({
+      id: subtitle.id,
+      start: Number(subtitle.start || 0),
+      end: Number(subtitle.end || 0),
+      text: String(subtitle.text || "").trim()
+    }))
+    .filter((subtitle) => subtitle.text && subtitle.end > subtitle.start)
     .map((subtitle) => {
       const left = Math.max(0, Math.min(100, (subtitle.start / duration) * 100));
       const width = Math.max(4, Math.min(100 - left, ((subtitle.end - subtitle.start) / duration) * 100));
-      return `<div class="subtitle-bar" style="left:${left}%;width:${width}%">${escapeHtml(subtitle.text)}</div>`;
+      return `<div class="subtitle-bar" data-id="${escapeHtml(subtitle.id)}" style="left:${left}%;width:${width}%">${escapeHtml(subtitle.text)}</div>`;
     })
     .join("");
+  bindTimelineDrag();
 }
 
 function getCleanSubtitles() {
@@ -330,6 +362,60 @@ function updatePreviewEffects() {
 function updatePreviewAudio() {
   previewVideo.volume = Math.max(0, Math.min(1, Number(volumeInput.value)));
   previewVideo.muted = muteInput.checked;
+}
+
+function autoSplitCaptions() {
+  const text = autoCaptionText.value.trim();
+  if (!text) return;
+  const pieces = text
+    .split(/[\n。！？!?；;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 50);
+  if (!pieces.length) return;
+  const duration = Math.max(1, getDuration());
+  const step = Math.max(1.2, duration / pieces.length);
+  subtitles = pieces.map((textPiece, index) => ({
+    id: makeId(),
+    start: Number((index * step).toFixed(1)),
+    end: Number(Math.min(duration, (index + 1) * step).toFixed(1)),
+    text: textPiece
+  }));
+  renderSubtitles();
+}
+
+function bindTimelineDrag() {
+  subtitleBars.querySelectorAll(".subtitle-bar").forEach((bar) => {
+    bar.addEventListener("pointerdown", (event) => {
+      const item = subtitles.find((subtitle) => subtitle.id === bar.dataset.id);
+      if (!item) return;
+      event.preventDefault();
+      bar.setPointerCapture(event.pointerId);
+      const rect = subtitleBars.getBoundingClientRect();
+      const duration = Math.max(1, getDuration());
+      const startX = event.clientX;
+      const originalStart = Number(item.start || 0);
+      const originalEnd = Number(item.end || 0);
+      const length = Math.max(0.5, originalEnd - originalStart);
+
+      function move(moveEvent) {
+        const delta = ((moveEvent.clientX - startX) / rect.width) * duration;
+        const nextStart = Math.max(0, Math.min(duration - length, originalStart + delta));
+        item.start = Number(nextStart.toFixed(1));
+        item.end = Number((nextStart + length).toFixed(1));
+        renderSubtitles();
+      }
+
+      function up() {
+        bar.releasePointerCapture(event.pointerId);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      }
+
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+  });
 }
 
 function formatTime(value) {

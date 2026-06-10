@@ -89,7 +89,41 @@
                 </div>
                 <button id="addSubtitleBtn" class="mini-button" type="button">添加</button>
               </div>
+              <label>
+                自动字幕文案
+                <textarea id="autoCaptionText" rows="3" placeholder="粘贴口播稿或字幕文本，点击自动拆分"></textarea>
+              </label>
+              <button id="autoCaptionBtn" class="secondary-button" type="button">自动拆分字幕</button>
               <div id="subtitleList" class="subtitle-list"></div>
+            </section>
+
+            <section class="tool-block">
+              <div class="tool-block-header">
+                <div>
+                  <h3>贴纸/图片</h3>
+                  <p>输入客户电脑上的图片路径，导出时覆盖到视频。</p>
+                </div>
+              </div>
+              <label>
+                图片路径
+                <input id="stickerPathInput" name="stickerPath" placeholder="例如：C:\Users\Administrator\Pictures\logo.png" />
+              </label>
+              <div class="inline-fields">
+                <label>
+                  位置
+                  <select id="stickerPositionInput" name="stickerPosition">
+                    <option value="top-right">右上</option>
+                    <option value="top-left">左上</option>
+                    <option value="bottom-right">右下</option>
+                    <option value="bottom-left">左下</option>
+                    <option value="center">居中</option>
+                  </select>
+                </label>
+                <label>
+                  大小
+                  <input id="stickerScaleInput" name="stickerScale" type="range" min="8" max="60" step="1" value="22" />
+                </label>
+              </div>
             </section>
 
             <section class="tool-block">
@@ -127,6 +161,44 @@
               <label class="check-row">
                 <input id="muteInput" name="muted" type="checkbox" />
                 静音导出
+              </label>
+              <label>
+                背景音乐路径
+                <input id="musicPathInput" name="musicPath" placeholder="例如：C:\Users\Administrator\Music\bgm.mp3" />
+              </label>
+              <label>
+                背景音乐音量
+                <input id="musicVolumeInput" name="musicVolume" type="range" min="0" max="2" step="0.05" value="0.6" />
+              </label>
+            </section>
+
+            <section class="tool-block">
+              <div class="tool-block-header">
+                <div>
+                  <h3>片头片尾</h3>
+                  <p>导出时在开头和结尾覆盖模板文字。</p>
+                </div>
+              </div>
+              <label>
+                模板
+                <select id="templateInput" name="template">
+                  <option value="none">无</option>
+                  <option value="clean">简洁标题</option>
+                  <option value="dark">黑底白字</option>
+                  <option value="brand">品牌色</option>
+                </select>
+              </label>
+              <label>
+                片头文字
+                <input id="introTextInput" name="introText" maxlength="80" placeholder="视频开头显示" />
+              </label>
+              <label>
+                片尾文字
+                <input id="outroTextInput" name="outroText" maxlength="80" placeholder="视频结尾显示" />
+              </label>
+              <label>
+                显示秒数
+                <input id="templateSecondsInput" name="templateSeconds" type="number" min="0.5" max="8" step="0.5" value="2.5" />
               </label>
             </section>
 

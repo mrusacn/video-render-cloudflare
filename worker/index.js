@@ -53,7 +53,16 @@ async function handleApi(request, env, url) {
         contrast: clampNumber(input.contrast, 0.5, 2, 1),
         saturation: clampNumber(input.saturation, 0, 2, 1),
         volume: clampNumber(input.volume, 0, 2, 1),
-        muted: Boolean(input.muted)
+        muted: Boolean(input.muted),
+        stickerPath: String(input.stickerPath || "").trim().slice(0, 1000),
+        stickerPosition: sanitizeChoice(input.stickerPosition, ["top-right", "top-left", "bottom-right", "bottom-left", "center"], "top-right"),
+        stickerScale: clampNumber(input.stickerScale, 8, 60, 22),
+        musicPath: String(input.musicPath || "").trim().slice(0, 1000),
+        musicVolume: clampNumber(input.musicVolume, 0, 2, 0.6),
+        template: sanitizeChoice(input.template, ["none", "clean", "dark", "brand"], "none"),
+        introText: String(input.introText || "").trim().slice(0, 80),
+        outroText: String(input.outroText || "").trim().slice(0, 80),
+        templateSeconds: clampNumber(input.templateSeconds, 0.5, 8, 2.5)
       },
       localAssetRequired: Boolean(input.localAssetRequired),
       status: "queued",
@@ -190,6 +199,10 @@ function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number)) return fallback;
   return Math.max(min, Math.min(max, number));
+}
+
+function sanitizeChoice(value, choices, fallback) {
+  return choices.includes(value) ? value : fallback;
 }
 
 function authorizeRunner(request, env) {

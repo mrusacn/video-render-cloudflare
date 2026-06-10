@@ -111,6 +111,9 @@ async function createResult(job) {
       `Subtitles: ${JSON.stringify(job.edit?.subtitles || [])}`,
       `Color: brightness=${job.edit?.brightness ?? 0}, contrast=${job.edit?.contrast ?? 1}, saturation=${job.edit?.saturation ?? 1}`,
       `Audio: volume=${job.edit?.volume ?? 1}, muted=${Boolean(job.edit?.muted)}`,
+      `Sticker: ${job.edit?.stickerPath || ""}`,
+      `Music: ${job.edit?.musicPath || ""}`,
+      `Template: ${job.edit?.template || "none"}, intro=${job.edit?.introText || ""}, outro=${job.edit?.outroText || ""}`,
       `Notes: ${job.notes || ""}`,
       "",
       "FFmpeg was not found, so the runner created this dry-run result instead."
@@ -127,10 +130,11 @@ async function renderWithFfmpeg(job, mp4Path) {
   const trimStart = Math.max(0, Number(job.edit?.trimStart || 0));
   const trimEnd = Math.max(0, Number(job.edit?.trimEnd || 0));
   const duration = trimEnd > trimStart ? trimEnd - trimStart : Number(job.duration || 0);
-  const caption = String(job.edit?.caption || "").trim();
-  const subtitles = Array.isArray(job.edit?.subtitles) ? job.edit.subtitles : [];
-  const vf = buildVideoFilter({ width, height, caption, subtitles, edit: job.edit || {} });
   const args = ["-y"];
+  const stickerPath = String(job.edit?.stickerPath || "").trim();
+  const musicPath = String(job.edit?.musicPath || "").trim();
+  const hasSticker = Boolean(stickerPath);
+  const hasMusic = Boolean(musicPath);
 
   if (trimStart > 0) {
     args.push("-ss", String(trimStart));
@@ -138,16 +142,46 @@ async function renderWithFfmpeg(job, mp4Path) {
 
   args.push("-i", sourcePath);
 
+  let nextInputIndex = 1;
+  let stickerInputIndex = -1;
+  let musicInputIndex = -1;
+
+  if (hasSticker) {
+    const resolvedSticker = resolve(stickerPath);
+    await assertFileExists(resolvedSticker);
+    stickerInputIndex = nextInputIndex;
+    nextInputIndex += 1;
+    args.push("-loop", "1", "-i", resolvedSticker);
+  }
+
+  if (hasMusic) {
+    const resolvedMusic = resolve(musicPath);
+    await assertFileExists(resolvedMusic);
+    musicInputIndex = nextInputIndex;
+    args.push("-stream_loop", "-1", "-i", resolvedMusic);
+  }
+
   if (duration > 0) {
     args.push("-t", String(duration));
   }
 
-  args.push("-vf", vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
+  const filterGraph = buildFilterGraph({
+    width,
+    height,
+    duration,
+    edit: job.edit || {},
+    stickerInputIndex,
+    musicInputIndex
+  });
 
-  if (job.edit?.muted) {
+  args.push("-filter_complex", filterGraph, "-map", "[vout]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23");
+
+  if (hasMusic) {
+    args.push("-map", "[aout]", "-c:a", "aac", "-b:a", "160k", "-shortest");
+  } else if (job.edit?.muted) {
     args.push("-an");
   } else {
-    args.push("-filter:a", `volume=${clampNumber(job.edit?.volume, 0, 2, 1)}`, "-c:a", "aac", "-b:a", "160k");
+    args.push("-map", "0:a?", "-filter:a", `volume=${clampNumber(job.edit?.volume, 0, 2, 1)}`, "-c:a", "aac", "-b:a", "160k");
   }
 
   args.push("-movflags", "+faststart", "-pix_fmt", "yuv420p", mp4Path);
@@ -171,7 +205,31 @@ function getPresetSize(preset) {
   return { width: 1080, height: 1920 };
 }
 
-function buildVideoFilter({ width, height, caption, subtitles, edit }) {
+function buildFilterGraph({ width, height, duration, edit, stickerInputIndex, musicInputIndex }) {
+  const videoFilters = buildVideoFilters({ width, height, duration, edit });
+  const parts = [`[0:v]${videoFilters.join(",")}[v0]`];
+  let videoLabel = "v0";
+
+  if (stickerInputIndex > -1) {
+    const stickerWidth = Math.round(width * (clampNumber(edit.stickerScale, 8, 60, 22) / 100));
+    const position = getStickerOverlayPosition(edit.stickerPosition, width, height);
+    parts.push(`[${stickerInputIndex}:v]scale=${stickerWidth}:-1[sticker]`);
+    parts.push(`[${videoLabel}][sticker]overlay=${position}:format=auto[v1]`);
+    videoLabel = "v1";
+  }
+
+  parts.push(`[${videoLabel}]format=yuv420p[vout]`);
+
+  if (musicInputIndex > -1) {
+    parts.push(`[${musicInputIndex}:a]volume=${clampNumber(edit.musicVolume, 0, 2, 0.6)}[aout]`);
+  }
+
+  return parts.join(";");
+}
+
+function buildVideoFilters({ width, height, duration, edit }) {
+  const caption = String(edit?.caption || "").trim();
+  const subtitles = Array.isArray(edit?.subtitles) ? edit.subtitles : [];
   const filters = [
     `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
     `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black`,
@@ -202,7 +260,48 @@ function buildVideoFilter({ width, height, caption, subtitles, edit }) {
     );
   }
 
-  return filters.join(",");
+  addTemplateFilters(filters, { width, height, duration, edit, fontFile });
+
+  return filters;
+}
+
+function addTemplateFilters(filters, { width, height, duration, edit, fontFile }) {
+  const template = edit.template || "none";
+  if (template === "none") return;
+  const seconds = clampNumber(edit.templateSeconds, 0.5, 8, 2.5);
+  const intro = String(edit.introText || "").trim();
+  const outro = String(edit.outroText || "").trim();
+  const fontSize = Math.round(width * 0.06);
+  const style = getTemplateStyle(template);
+
+  if (intro) {
+    filters.push(`drawbox=x=0:y=0:w=iw:h=ih:color=${style.box}:t=fill:enable='between(t,0,${seconds})'`);
+    filters.push(`drawtext=fontfile='${fontFile}':text='${escapeFfmpegText(intro)}':fontcolor=${style.text}:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,0,${seconds})'`);
+  }
+
+  if (outro && duration > 0) {
+    const start = Math.max(0, duration - seconds);
+    filters.push(`drawbox=x=0:y=0:w=iw:h=ih:color=${style.box}:t=fill:enable='between(t,${start},${duration})'`);
+    filters.push(`drawtext=fontfile='${fontFile}':text='${escapeFfmpegText(outro)}':fontcolor=${style.text}:fontsize=${fontSize}:x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,${start},${duration})'`);
+  }
+}
+
+function getTemplateStyle(template) {
+  if (template === "dark") return { box: "black@0.88", text: "white" };
+  if (template === "brand") return { box: "0x16735b@0.88", text: "white" };
+  return { box: "white@0.82", text: "black" };
+}
+
+function getStickerOverlayPosition(position, width, height) {
+  const margin = Math.round(Math.min(width, height) * 0.04);
+  const map = {
+    "top-left": `${margin}:${margin}`,
+    "top-right": `W-w-${margin}:${margin}`,
+    "bottom-left": `${margin}:H-h-${margin}`,
+    "bottom-right": `W-w-${margin}:H-h-${margin}`,
+    center: "(W-w)/2:(H-h)/2"
+  };
+  return map[position] || map["top-right"];
 }
 
 function clampNumber(value, min, max, fallback) {
