@@ -149,6 +149,83 @@ label {
   gap: 10px;
 }
 
+.tool-block {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.tool-block-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.mini-button,
+.icon-button {
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.mini-button {
+  min-height: 32px;
+  padding: 0 10px;
+  background: #dce8f5;
+  color: #24405f;
+  font-size: 12px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  background: #edf2f7;
+  color: #4a5a6d;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.subtitle-list {
+  display: grid;
+  gap: 8px;
+}
+
+.subtitle-row {
+  display: grid;
+  grid-template-columns: 64px 64px minmax(0, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+.subtitle-time,
+.subtitle-text {
+  min-height: 34px;
+  padding: 7px 8px;
+  font-size: 12px;
+}
+
+.check-row {
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+}
+
 input,
 select,
 textarea {
@@ -280,6 +357,63 @@ textarea:focus {
   border-color: #b8dfc8;
   background: #eef9f2;
   color: #22563c;
+}
+
+.timeline {
+  margin: 0 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 14px;
+}
+
+.timeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.timeline-track {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.clip-bar,
+.subtitle-bars {
+  position: relative;
+  min-height: 24px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #e5ecf4;
+}
+
+.clip-bar::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #2b6cb0, #16735b);
+}
+
+.subtitle-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #27364a;
+  color: #fff;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 
 .queue-panel {

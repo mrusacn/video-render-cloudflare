@@ -9,6 +9,9 @@ const summaryText = document.querySelector("#summaryText");
 const runnerState = document.querySelector("#runnerState");
 const refreshBtn = document.querySelector("#refreshBtn");
 const sourceInput = document.querySelector("#sourceInput");
+const sourcePathInput = document.querySelector("#sourcePathInput");
+const trimStartInput = document.querySelector("#trimStartInput");
+const trimEndInput = document.querySelector("#trimEndInput");
 const previewVideo = document.querySelector("#previewVideo");
 const previewFrame = document.querySelector("#previewFrame");
 const previewMeta = document.querySelector("#previewMeta");
@@ -17,10 +20,23 @@ const captionInput = document.querySelector("#captionInput");
 const captionOverlay = document.querySelector("#captionOverlay");
 const presetInput = document.querySelector("#presetInput");
 const installBox = document.querySelector("#installBox");
+const addSubtitleBtn = document.querySelector("#addSubtitleBtn");
+const subtitleList = document.querySelector("#subtitleList");
+const subtitleBars = document.querySelector("#subtitleBars");
+const timelineDuration = document.querySelector("#timelineDuration");
+const clipBar = document.querySelector("#clipBar");
+const brightnessInput = document.querySelector("#brightnessInput");
+const contrastInput = document.querySelector("#contrastInput");
+const saturationInput = document.querySelector("#saturationInput");
+const volumeInput = document.querySelector("#volumeInput");
+const muteInput = document.querySelector("#muteInput");
 
 const accessCodeKey = "cloud-video-studio-access-code";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
 let selectedSource = null;
+let subtitles = [
+  { id: makeId(), start: 0, end: 3, text: "" }
+];
 
 const statusLabels = {
   queued: "排队中",
@@ -61,24 +77,53 @@ sourceInput.addEventListener("change", () => {
   previewVideo.classList.add("ready");
   emptyPreview.classList.add("hidden");
   previewMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+  sourcePathInput.placeholder = `请粘贴这个文件在客户电脑里的完整路径：${file.name}`;
   if (!document.querySelector("#titleInput").value) {
     document.querySelector("#titleInput").value = file.name.replace(/\.[^.]+$/, "");
   }
+  previewVideo.addEventListener("loadedmetadata", renderTimeline, { once: true });
 });
 
 captionInput.addEventListener("input", updateCaption);
+previewVideo.addEventListener("timeupdate", updateCaption);
 presetInput.addEventListener("change", updatePresetFrame);
 refreshBtn.addEventListener("click", refreshAll);
+addSubtitleBtn.addEventListener("click", () => {
+  const last = subtitles.at(-1);
+  const start = last ? Number(last.end || 0) : 0;
+  subtitles.push({ id: makeId(), start, end: start + 3, text: "" });
+  renderSubtitles();
+});
+
+[brightnessInput, contrastInput, saturationInput].forEach((input) => {
+  input.addEventListener("input", updatePreviewEffects);
+});
+
+volumeInput.addEventListener("input", updatePreviewAudio);
+muteInput.addEventListener("change", updatePreviewAudio);
+
+[trimStartInput, trimEndInput].forEach((input) => {
+  input.addEventListener("input", renderTimeline);
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
-  payload.sourceName = selectedSource?.name || "";
+  delete payload.source;
+  const sourcePath = sourcePathInput.value.trim();
+  payload.sourceName = selectedSource?.name || fileNameFromPath(sourcePath);
   payload.sourceSize = selectedSource?.size || 0;
+  payload.sourcePath = sourcePath;
   payload.duration = getDuration();
   payload.caption = captionInput.value.trim();
-  payload.localAssetRequired = Boolean(selectedSource);
+  payload.subtitles = getCleanSubtitles();
+  payload.brightness = Number(brightnessInput.value);
+  payload.contrast = Number(contrastInput.value);
+  payload.saturation = Number(saturationInput.value);
+  payload.volume = Number(volumeInput.value);
+  payload.muted = muteInput.checked;
+  payload.localAssetRequired = Boolean(selectedSource || sourcePath);
   await api("/api/jobs", {
     method: "POST",
     body: JSON.stringify(payload)
@@ -91,6 +136,9 @@ async function showStudio() {
   studioView.classList.remove("hidden");
   updateCaption();
   updatePresetFrame();
+  updatePreviewEffects();
+  updatePreviewAudio();
+  renderSubtitles();
   await refreshAll();
   setInterval(refreshAll, 3000);
 }
@@ -130,7 +178,7 @@ function renderRunner(runner) {
     runnerState.className = "state-pill online";
     installBox.classList.add("connected");
     installBox.querySelector("strong").textContent = "本地渲染助手已连接";
-    installBox.querySelector("span").textContent = "现在可以在网页提交导出任务，客户电脑会自动领取并渲染。";
+  installBox.querySelector("span").textContent = "现在可以在网页提交导出任务，客户电脑会自动领取并渲染。";
     return;
   }
   runnerState.textContent = "本地助手未连接";
@@ -156,7 +204,7 @@ function renderJobs(jobs) {
       const edit = job.edit || {};
       const result = job.resultUrl
         ? `<div class="result-box">结果位置<br>${escapeHtml(job.resultUrl)}</div>`
-        : `<div class="result-box">${job.localAssetRequired ? "需要客户电脑读取本地素材" : "等待导出结果"}</div>`;
+        : `<div class="result-box">${edit.sourcePath ? "等待本地 FFmpeg 导出" : "需要填写本地素材路径"}</div>`;
 
       return `
         <article class="job-card">
@@ -168,7 +216,9 @@ function renderJobs(jobs) {
             <div class="job-meta">
               ${escapeHtml(job.preset)} · ${job.duration}s · ${escapeHtml(edit.sourceName || "无素材名")} · ${formatTime(job.createdAt)}
             </div>
-            ${edit.caption ? `<div class="job-notes">字幕：${escapeHtml(edit.caption)}</div>` : ""}
+            ${edit.sourcePath ? `<div class="job-notes">素材路径：${escapeHtml(edit.sourcePath)}</div>` : ""}
+            ${edit.caption ? `<div class="job-notes">标题字幕：${escapeHtml(edit.caption)}</div>` : ""}
+            ${edit.subtitles?.length ? `<div class="job-notes">字幕段数：${edit.subtitles.length}</div>` : ""}
             ${job.notes ? `<div class="job-notes">${escapeHtml(job.notes)}</div>` : ""}
             <div class="progress-shell" aria-label="渲染进度">
               <div class="progress-bar" style="--progress: ${progress}%"></div>
@@ -183,8 +233,10 @@ function renderJobs(jobs) {
 
 function updateCaption() {
   const value = captionInput.value.trim();
-  captionOverlay.textContent = value || "字幕预览";
-  captionOverlay.classList.toggle("muted", !value);
+  const activeSubtitle = getPreviewSubtitle();
+  captionOverlay.textContent = activeSubtitle || value || "字幕预览";
+  captionOverlay.classList.toggle("muted", !activeSubtitle && !value);
+  renderTimeline();
 }
 
 function updatePresetFrame() {
@@ -203,6 +255,83 @@ function getDuration() {
   return 30;
 }
 
+function renderSubtitles() {
+  subtitleList.innerHTML = subtitles
+    .map((item, index) => `
+      <div class="subtitle-row" data-id="${item.id}">
+        <input class="subtitle-time" data-field="start" type="number" min="0" step="0.1" value="${escapeHtml(item.start)}" aria-label="字幕开始时间" />
+        <input class="subtitle-time" data-field="end" type="number" min="0" step="0.1" value="${escapeHtml(item.end)}" aria-label="字幕结束时间" />
+        <input class="subtitle-text" data-field="text" maxlength="120" value="${escapeHtml(item.text)}" placeholder="字幕 ${index + 1}" />
+        <button class="icon-button" type="button" data-remove="${item.id}" aria-label="删除字幕">×</button>
+      </div>
+    `)
+    .join("");
+
+  subtitleList.querySelectorAll("input").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const row = event.target.closest(".subtitle-row");
+      const item = subtitles.find((subtitle) => subtitle.id === row.dataset.id);
+      if (!item) return;
+      const field = event.target.dataset.field;
+      item[field] = field === "text" ? event.target.value : Number(event.target.value || 0);
+      updateCaption();
+    });
+  });
+
+  subtitleList.querySelectorAll("[data-remove]").forEach((button) => {
+    button.addEventListener("click", () => {
+      subtitles = subtitles.filter((subtitle) => subtitle.id !== button.dataset.remove);
+      if (!subtitles.length) subtitles.push({ id: makeId(), start: 0, end: 3, text: "" });
+      renderSubtitles();
+    });
+  });
+
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const duration = Math.max(1, getDuration());
+  timelineDuration.textContent = `${duration}s`;
+  clipBar.style.width = "100%";
+  subtitleBars.innerHTML = getCleanSubtitles()
+    .map((subtitle) => {
+      const left = Math.max(0, Math.min(100, (subtitle.start / duration) * 100));
+      const width = Math.max(4, Math.min(100 - left, ((subtitle.end - subtitle.start) / duration) * 100));
+      return `<div class="subtitle-bar" style="left:${left}%;width:${width}%">${escapeHtml(subtitle.text)}</div>`;
+    })
+    .join("");
+}
+
+function getCleanSubtitles() {
+  return subtitles
+    .map((subtitle) => ({
+      start: Number(subtitle.start || 0),
+      end: Number(subtitle.end || 0),
+      text: String(subtitle.text || "").trim()
+    }))
+    .filter((subtitle) => subtitle.text && subtitle.end > subtitle.start)
+    .slice(0, 50);
+}
+
+function getPreviewSubtitle() {
+  const current = Number.isFinite(previewVideo.currentTime) ? previewVideo.currentTime : 0;
+  const match = getCleanSubtitles().find((subtitle) => current >= subtitle.start && current <= subtitle.end);
+  return match?.text || "";
+}
+
+function updatePreviewEffects() {
+  previewVideo.style.filter = [
+    `brightness(${1 + Number(brightnessInput.value)})`,
+    `contrast(${Number(contrastInput.value)})`,
+    `saturate(${Number(saturationInput.value)})`
+  ].join(" ");
+}
+
+function updatePreviewAudio() {
+  previewVideo.volume = Math.max(0, Math.min(1, Number(volumeInput.value)));
+  previewVideo.muted = muteInput.checked;
+}
+
 function formatTime(value) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "2-digit",
@@ -219,6 +348,10 @@ function formatBytes(value) {
   return `${(value / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
 }
 
+function fileNameFromPath(value) {
+  return String(value || "").split(/[\\/]/).filter(Boolean).pop() || "";
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -226,4 +359,11 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function makeId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

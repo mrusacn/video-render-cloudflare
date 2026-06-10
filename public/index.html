@@ -47,6 +47,11 @@
             </label>
 
             <label>
+              本地素材路径
+              <input id="sourcePathInput" name="sourcePath" placeholder="例如：C:\Users\Administrator\Videos\demo.mp4" />
+            </label>
+
+            <label>
               项目名称
               <input id="titleInput" name="title" maxlength="80" required placeholder="例如：口播短视频 01" />
             </label>
@@ -76,6 +81,55 @@
               <input id="captionInput" name="caption" maxlength="120" placeholder="显示在视频上的文字" />
             </label>
 
+            <section class="tool-block">
+              <div class="tool-block-header">
+                <div>
+                  <h3>字幕轨道</h3>
+                  <p>添加多段字幕，导出时会压进视频。</p>
+                </div>
+                <button id="addSubtitleBtn" class="mini-button" type="button">添加</button>
+              </div>
+              <div id="subtitleList" class="subtitle-list"></div>
+            </section>
+
+            <section class="tool-block">
+              <div class="tool-block-header">
+                <div>
+                  <h3>画面调色</h3>
+                  <p>调整导出视频的基础观感。</p>
+                </div>
+              </div>
+              <label>
+                亮度
+                <input id="brightnessInput" name="brightness" type="range" min="-0.5" max="0.5" step="0.05" value="0" />
+              </label>
+              <label>
+                对比度
+                <input id="contrastInput" name="contrast" type="range" min="0.5" max="2" step="0.05" value="1" />
+              </label>
+              <label>
+                饱和度
+                <input id="saturationInput" name="saturation" type="range" min="0" max="2" step="0.05" value="1" />
+              </label>
+            </section>
+
+            <section class="tool-block">
+              <div class="tool-block-header">
+                <div>
+                  <h3>音频</h3>
+                  <p>控制原视频声音。</p>
+                </div>
+              </div>
+              <label>
+                音量
+                <input id="volumeInput" name="volume" type="range" min="0" max="2" step="0.05" value="1" />
+              </label>
+              <label class="check-row">
+                <input id="muteInput" name="muted" type="checkbox" />
+                静音导出
+              </label>
+            </section>
+
             <label>
               工程说明
               <textarea id="notesInput" name="notes" rows="4" placeholder="背景音乐、转场、素材位置、客户要求..."></textarea>
@@ -97,9 +151,23 @@
               <div id="captionOverlay" class="caption-overlay">字幕预览</div>
               <div id="emptyPreview" class="empty-preview">选择本地视频后在这里预览</div>
             </div>
+            <div class="timeline">
+              <div class="timeline-head">
+                <strong>时间线</strong>
+                <span id="timelineDuration">30s</span>
+              </div>
+              <div class="timeline-track video-track">
+                <span>视频</span>
+                <div id="clipBar" class="clip-bar"></div>
+              </div>
+              <div class="timeline-track subtitle-track">
+                <span>字幕</span>
+                <div id="subtitleBars" class="subtitle-bars"></div>
+              </div>
+            </div>
             <div class="install-box" id="installBox">
               <strong>本地渲染助手未连接</strong>
-              <span>如果点击导出后一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 `start-runner.cmd`。</span>
+              <span>如果点击导出后一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 start-runner.cmd。</span>
             </div>
           </section>
 

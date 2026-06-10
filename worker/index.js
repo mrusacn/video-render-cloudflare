@@ -43,10 +43,17 @@ async function handleApi(request, env, url) {
       notes: String(input.notes || "").trim().slice(0, 2000),
       edit: {
         sourceName: String(input.sourceName || "").trim().slice(0, 240),
+        sourcePath: String(input.sourcePath || "").trim().slice(0, 1000),
         sourceSize: Number(input.sourceSize || 0),
         trimStart: Number(input.trimStart || 0),
         trimEnd: Number(input.trimEnd || 0),
-        caption: String(input.caption || "").trim().slice(0, 120)
+        caption: String(input.caption || "").trim().slice(0, 120),
+        subtitles: sanitizeSubtitles(input.subtitles),
+        brightness: clampNumber(input.brightness, -0.5, 0.5, 0),
+        contrast: clampNumber(input.contrast, 0.5, 2, 1),
+        saturation: clampNumber(input.saturation, 0, 2, 1),
+        volume: clampNumber(input.volume, 0, 2, 1),
+        muted: Boolean(input.muted)
       },
       localAssetRequired: Boolean(input.localAssetRequired),
       status: "queued",
@@ -165,6 +172,24 @@ function sanitizePatch(patch) {
   if (typeof patch.resultUrl === "string") output.resultUrl = patch.resultUrl;
   if (typeof patch.error === "string") output.error = patch.error.slice(0, 1000);
   return output;
+}
+
+function sanitizeSubtitles(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => ({
+      start: clampNumber(item?.start, 0, 36000, 0),
+      end: clampNumber(item?.end, 0, 36000, 0),
+      text: String(item?.text || "").trim().slice(0, 120)
+    }))
+    .filter((item) => item.text && item.end > item.start)
+    .slice(0, 50);
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(min, Math.min(max, number));
 }
 
 function authorizeRunner(request, env) {
