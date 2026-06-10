@@ -78,6 +78,26 @@ textarea {
   gap: 10px;
 }
 
+.asset-dock {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.asset-dock-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.asset-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(260px, 1.2fr) minmax(240px, 1fr) minmax(240px, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
 h1,
 h2,
 p {
@@ -565,6 +585,10 @@ textarea:focus {
     grid-template-columns: 330px minmax(0, 1fr);
   }
 
+  .asset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .queue-panel {
     grid-column: 1 / -1;
   }
@@ -577,9 +601,14 @@ textarea:focus {
 
   .topbar,
   .topbar-actions,
-  .preview-toolbar {
+  .preview-toolbar,
+  .asset-dock-title {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .asset-grid {
+    grid-template-columns: 1fr;
   }
 
   .preview-frame {

@@ -34,22 +34,37 @@
           </div>
         </header>
 
-        <section class="workspace">
-          <form id="jobForm" class="panel editor-panel">
-            <div class="panel-title">
-              <h2>视频编辑</h2>
-              <p>选择素材、裁剪片段、设置画面和字幕。</p>
-            </div>
-
+        <section class="panel asset-dock">
+          <div class="asset-dock-title">
+            <h2>素材导入</h2>
+            <p>统一管理视频、图片贴纸和背景音乐路径。</p>
+          </div>
+          <div class="asset-grid">
             <label>
               视频素材
               <input id="sourceInput" name="source" type="file" accept="video/*" />
             </label>
-
             <label>
-              本地素材路径
+              本地视频路径
               <input id="sourcePathInput" name="sourcePath" placeholder="例如：C:\Users\Administrator\Videos\demo.mp4" />
             </label>
+            <label>
+              贴纸/图片路径
+              <input id="stickerPathInput" name="stickerPath" placeholder="例如：C:\Users\Administrator\Pictures\logo.png" />
+            </label>
+            <label>
+              背景音乐路径
+              <input id="musicPathInput" name="musicPath" placeholder="例如：C:\Users\Administrator\Music\bgm.mp3" />
+            </label>
+          </div>
+        </section>
+
+        <section class="workspace">
+          <form id="jobForm" class="panel editor-panel">
+            <div class="panel-title">
+              <h2>视频编辑</h2>
+              <p>裁剪片段、设置画面、字幕、贴纸和声音。</p>
+            </div>
 
             <label>
               项目名称
@@ -101,13 +116,9 @@
               <div class="tool-block-header">
                 <div>
                   <h3>贴纸/图片</h3>
-                  <p>输入客户电脑上的图片路径，导出时覆盖到视频。</p>
+                  <p>贴纸路径在顶部素材栏导入，这里设置位置和大小。</p>
                 </div>
               </div>
-              <label>
-                图片路径
-                <input id="stickerPathInput" name="stickerPath" placeholder="例如：C:\Users\Administrator\Pictures\logo.png" />
-              </label>
               <div class="inline-fields">
                 <label>
                   位置
@@ -161,10 +172,6 @@
               <label class="check-row">
                 <input id="muteInput" name="muted" type="checkbox" />
                 静音导出
-              </label>
-              <label>
-                背景音乐路径
-                <input id="musicPathInput" name="musicPath" placeholder="例如：C:\Users\Administrator\Music\bgm.mp3" />
               </label>
               <label>
                 背景音乐音量
