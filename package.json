@@ -1,0 +1,14 @@
+{
+  "name": "video-render-cloudflare",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/dev-server.mjs",
+    "runner": "node runner/local-runner.mjs",
+    "check": "node --check server/dev-server.mjs && node --check runner/local-runner.mjs && node --check worker/index.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Video Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="loginView" class="login-view">
+        <div class="login-card">
+          <h1>Cloud Video Studio</h1>
+          <p>登录后直接在网页剪辑，导出任务交给客户电脑上的本地渲染助手。</p>
+          <form id="loginForm" class="login-form">
+            <label>
+              网站访问码
+              <input id="accessCodeInput" autocomplete="current-password" placeholder="输入 Cloudflare 访问码" />
+            </label>
+            <button class="primary-button" type="submit">进入工作台</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="studioView" class="studio-view hidden">
+        <header class="topbar">
+          <div>
+            <h1>Cloud Video Studio</h1>
+            <p>网页负责剪辑和排队，本地渲染助手负责导出成片。</p>
+          </div>
+          <div class="topbar-actions">
+            <span id="runnerState" class="state-pill">检测本地助手</span>
+            <button id="logoutBtn" class="ghost-button" type="button">退出</button>
+          </div>
+        </header>
+
+        <section class="workspace">
+          <form id="jobForm" class="panel editor-panel">
+            <div class="panel-title">
+              <h2>视频编辑</h2>
+              <p>选择素材、裁剪片段、设置画面和字幕。</p>
+            </div>
+
+            <label>
+              视频素材
+              <input id="sourceInput" name="source" type="file" accept="video/*" />
+            </label>
+
+            <label>
+              项目名称
+              <input id="titleInput" name="title" maxlength="80" required placeholder="例如：口播短视频 01" />
+            </label>
+
+            <div class="inline-fields">
+              <label>
+                开始秒数
+                <input id="trimStartInput" name="trimStart" type="number" min="0" step="0.1" value="0" />
+              </label>
+              <label>
+                结束秒数
+                <input id="trimEndInput" name="trimEnd" type="number" min="0" step="0.1" placeholder="自动" />
+              </label>
+            </div>
+
+            <label>
+              导出规格
+              <select id="presetInput" name="preset">
+                <option value="vertical-1080p">竖屏 1080p</option>
+                <option value="square-1080p">方形 1080p</option>
+                <option value="landscape-1080p">横屏 1080p</option>
+              </select>
+            </label>
+
+            <label>
+              字幕/标题
+              <input id="captionInput" name="caption" maxlength="120" placeholder="显示在视频上的文字" />
+            </label>
+
+            <label>
+              工程说明
+              <textarea id="notesInput" name="notes" rows="4" placeholder="背景音乐、转场、素材位置、客户要求..."></textarea>
+            </label>
+
+            <button class="primary-button" type="submit">导出视频</button>
+          </form>
+
+          <section class="panel preview-panel">
+            <div class="preview-toolbar">
+              <div>
+                <h2>预览</h2>
+                <p id="previewMeta">还没有选择视频素材</p>
+              </div>
+              <button id="refreshBtn" class="ghost-button" type="button">刷新任务</button>
+            </div>
+            <div id="previewFrame" class="preview-frame vertical">
+              <video id="previewVideo" controls playsinline></video>
+              <div id="captionOverlay" class="caption-overlay">字幕预览</div>
+              <div id="emptyPreview" class="empty-preview">选择本地视频后在这里预览</div>
+            </div>
+            <div class="install-box" id="installBox">
+              <strong>本地渲染助手未连接</strong>
+              <span>如果点击导出后一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 `start-runner.cmd`。</span>
+            </div>
+          </section>
+
+          <section class="panel queue-panel">
+            <div class="panel-title queue-title">
+              <div>
+                <h2>导出队列</h2>
+                <p id="summaryText">正在读取任务...</p>
+              </div>
+            </div>
+            <div id="jobsList" class="jobs-list"></div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
