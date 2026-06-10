@@ -8,4 +8,4 @@ binding = "ASSETS"
 
 [[kv_namespaces]]
 binding = "JOBS"
-id = "replace_with_cloudflare_kv_namespace_id"
+id = ""3e25f6edec1742ea80f22f3e7b802083"
