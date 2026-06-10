@@ -212,25 +212,29 @@
           <section class="timeline-panel">
             <div class="timeline-toolbar">
               <div class="timeline-tools">
-                <button class="icon-button" type="button">⌫</button>
-                <button class="icon-button" type="button">✂</button>
-                <button class="icon-button" type="button">AI</button>
-                <button class="icon-button" type="button">⚑</button>
+                <button id="deleteTrackBtn" class="icon-button" type="button" title="删除字幕轨道">⌫</button>
+                <button id="splitSubtitleBtn" class="icon-button" type="button" title="按播放头切分字幕">✂</button>
+                <button id="aiCaptionBtn" class="icon-button" type="button" title="自动生成字幕">AI</button>
+                <button id="addMarkerBtn" class="icon-button" type="button" title="添加标记">⚑</button>
               </div>
               <div class="transport">
-                <button class="play-button" type="button">▶</button>
-                <strong>00:00:00</strong>
+                <button id="timelinePlayBtn" class="play-button" type="button">▶</button>
+                <strong id="currentTimeText">00:00:00</strong>
                 <span id="timelineDuration">30s</span>
               </div>
-              <div class="timeline-zoom">− ━━━━━ ＋</div>
+              <div class="timeline-zoom">
+                <button id="zoomOutBtn" type="button">−</button>
+                <input id="timelineZoomInput" type="range" min="60" max="180" step="10" value="100" />
+                <button id="zoomInBtn" type="button">＋</button>
+              </div>
             </div>
             <div class="timeline-ruler">
               <span>00:00</span><span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span><span>10:00</span>
             </div>
             <div class="timeline-body">
-              <div class="playhead"></div>
+              <div id="playhead" class="playhead"></div>
               <div class="timeline-lanes">
-                <div class="lane drop-lane"><span>Drag and drop media here</span></div>
+                <div id="dropLane" class="lane drop-lane"><span>Drag and drop media here</span></div>
                 <div class="lane video-lane">
                   <span class="lane-label">视频</span>
                   <div id="clipBar" class="clip-bar"></div>
@@ -241,7 +245,7 @@
                 </div>
                 <div class="lane audio-lane">
                   <span class="lane-label">音频</span>
-                  <div class="audio-wave">▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥</div>
+                  <div id="audioWave" class="audio-wave">▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥▥</div>
                 </div>
               </div>
             </div>

@@ -589,6 +589,24 @@ p {
   justify-self: end;
   color: #445164;
   font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-zoom button {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: #f2f5f8;
+  color: #202936;
+  font-weight: 900;
+}
+
+.timeline-zoom input {
+  width: 110px;
+  accent-color: #111827;
 }
 
 .timeline-ruler {
@@ -607,12 +625,22 @@ p {
 
 .playhead {
   position: absolute;
-  left: 108px;
+  left: calc(108px + var(--playhead, 0%) * (100% - 118px) / 100);
   top: 0;
   bottom: 0;
   width: 2px;
   background: #111827;
   z-index: 2;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: calc(108px + var(--marker-left, 0%) * (100% - 118px) / 100);
+  top: 28px;
+  width: 2px;
+  height: calc(100% - 34px);
+  background: #f59e0b;
+  z-index: 1;
 }
 
 .timeline-lanes {
@@ -634,6 +662,13 @@ p {
   padding-left: 12px;
   color: #7b8795;
   font-size: 12px;
+  border: 1px dashed transparent;
+}
+
+.drop-lane.drag-over {
+  border-color: #1aaee8;
+  background: #dff6fb;
+  color: #147d93;
 }
 
 .lane-label {
@@ -696,6 +731,11 @@ p {
   overflow: hidden;
   font-size: 18px;
   letter-spacing: 3px;
+  opacity: 0.35;
+}
+
+.audio-wave.has-audio {
+  opacity: 1;
 }
 
 .quick-tools {

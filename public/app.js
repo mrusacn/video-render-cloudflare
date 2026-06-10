@@ -33,6 +33,18 @@ const subtitleList = document.querySelector("#subtitleList");
 const subtitleBars = document.querySelector("#subtitleBars");
 const timelineDuration = document.querySelector("#timelineDuration");
 const clipBar = document.querySelector("#clipBar");
+const deleteTrackBtn = document.querySelector("#deleteTrackBtn");
+const splitSubtitleBtn = document.querySelector("#splitSubtitleBtn");
+const aiCaptionBtn = document.querySelector("#aiCaptionBtn");
+const addMarkerBtn = document.querySelector("#addMarkerBtn");
+const timelinePlayBtn = document.querySelector("#timelinePlayBtn");
+const currentTimeText = document.querySelector("#currentTimeText");
+const playhead = document.querySelector("#playhead");
+const zoomOutBtn = document.querySelector("#zoomOutBtn");
+const zoomInBtn = document.querySelector("#zoomInBtn");
+const timelineZoomInput = document.querySelector("#timelineZoomInput");
+const dropLane = document.querySelector("#dropLane");
+const audioWave = document.querySelector("#audioWave");
 const brightnessInput = document.querySelector("#brightnessInput");
 const contrastInput = document.querySelector("#contrastInput");
 const saturationInput = document.querySelector("#saturationInput");
@@ -64,6 +76,7 @@ const transcriptToCaptionsBtn = document.querySelector("#transcriptToCaptionsBtn
 const accessCodeKey = "cloud-video-studio-access-code";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
 let selectedSource = null;
+let markers = [];
 let subtitles = [
   { id: makeId(), start: 0, end: 3, text: "" }
 ];
@@ -144,9 +157,35 @@ backgroundFileInput.addEventListener("change", () => {
 captionInput.addEventListener("input", updateCaption);
 titleInput.addEventListener("input", syncProjectTitle);
 previewVideo.addEventListener("timeupdate", updateCaption);
+previewVideo.addEventListener("timeupdate", updateTimelinePlayhead);
+previewVideo.addEventListener("play", () => {
+  timelinePlayBtn.textContent = "⏸";
+});
+previewVideo.addEventListener("pause", () => {
+  timelinePlayBtn.textContent = "▶";
+});
 presetInput.addEventListener("change", updatePresetFrame);
 refreshBtn.addEventListener("click", refreshAll);
 exportTopBtn.addEventListener("click", () => form.requestSubmit());
+timelinePlayBtn.addEventListener("click", toggleTimelinePlayback);
+deleteTrackBtn.addEventListener("click", deleteSubtitleTrack);
+splitSubtitleBtn.addEventListener("click", splitSubtitleAtPlayhead);
+aiCaptionBtn.addEventListener("click", () => {
+  if (!autoCaptionText.value.trim() && transcriptText.value.trim()) {
+    autoCaptionText.value = transcriptText.value;
+  }
+  autoSplitCaptions();
+});
+addMarkerBtn.addEventListener("click", addTimelineMarker);
+zoomOutBtn.addEventListener("click", () => setTimelineZoom(Number(timelineZoomInput.value) - 10));
+zoomInBtn.addEventListener("click", () => setTimelineZoom(Number(timelineZoomInput.value) + 10));
+timelineZoomInput.addEventListener("input", () => setTimelineZoom(Number(timelineZoomInput.value)));
+dropLane.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  dropLane.classList.add("drag-over");
+});
+dropLane.addEventListener("dragleave", () => dropLane.classList.remove("drag-over"));
+dropLane.addEventListener("drop", handleTimelineDrop);
 addSubtitleBtn.addEventListener("click", () => {
   const last = subtitles.at(-1);
   const start = last ? Number(last.end || 0) : 0;
@@ -430,6 +469,9 @@ function renderTimeline() {
       return `<div class="subtitle-bar" data-id="${escapeHtml(subtitle.id)}" style="left:${left}%;width:${width}%">${escapeHtml(subtitle.text)}</div>`;
     })
     .join("");
+  renderMarkers(duration);
+  updateTimelinePlayhead();
+  updateTimelineAssets();
   bindTimelineDrag();
 }
 
@@ -461,6 +503,103 @@ function updatePreviewEffects() {
 function updatePreviewAudio() {
   previewVideo.volume = Math.max(0, Math.min(1, Number(volumeInput.value)));
   previewVideo.muted = muteInput.checked;
+}
+
+function toggleTimelinePlayback() {
+  if (!previewVideo.src) return;
+  if (previewVideo.paused) previewVideo.play();
+  else previewVideo.pause();
+}
+
+function updateTimelinePlayhead() {
+  const duration = Math.max(1, getDuration());
+  const current = Number.isFinite(previewVideo.currentTime) ? previewVideo.currentTime : 0;
+  const percent = Math.max(0, Math.min(100, (current / duration) * 100));
+  playhead.style.setProperty("--playhead", `${percent}%`);
+  currentTimeText.textContent = formatClock(current);
+}
+
+function deleteSubtitleTrack() {
+  subtitles = [{ id: makeId(), start: 0, end: 3, text: "" }];
+  markers = [];
+  renderSubtitles();
+}
+
+function splitSubtitleAtPlayhead() {
+  const current = Number(previewVideo.currentTime || 0);
+  const item = subtitles.find((subtitle) => current > Number(subtitle.start) && current < Number(subtitle.end));
+  if (!item || !item.text.trim()) return;
+  const originalEnd = Number(item.end);
+  item.end = Number(current.toFixed(1));
+  subtitles.push({
+    id: makeId(),
+    start: Number(current.toFixed(1)),
+    end: originalEnd,
+    text: item.text
+  });
+  subtitles.sort((a, b) => Number(a.start) - Number(b.start));
+  renderSubtitles();
+}
+
+function addTimelineMarker() {
+  const current = Number(previewVideo.currentTime || 0);
+  markers.push({ id: makeId(), time: current });
+  renderTimeline();
+}
+
+function renderMarkers(duration) {
+  document.querySelectorAll(".timeline-marker").forEach((marker) => marker.remove());
+  const timelineBody = document.querySelector(".timeline-body");
+  markers.forEach((marker) => {
+    const percent = Math.max(0, Math.min(100, (marker.time / duration) * 100));
+    const element = document.createElement("div");
+    element.className = "timeline-marker";
+    element.style.setProperty("--marker-left", `${percent}%`);
+    element.title = `标记 ${formatClock(marker.time)}`;
+    timelineBody.appendChild(element);
+  });
+}
+
+function setTimelineZoom(value) {
+  const next = Math.max(60, Math.min(180, value));
+  timelineZoomInput.value = String(next);
+  document.querySelector(".timeline-lanes").style.width = `${next}%`;
+  document.querySelector(".timeline-ruler").style.width = `${next}%`;
+}
+
+function handleTimelineDrop(event) {
+  event.preventDefault();
+  dropLane.classList.remove("drag-over");
+  const file = event.dataTransfer.files?.[0];
+  if (!file) return;
+  if (file.type.startsWith("video/")) {
+    selectedSource = file;
+    previewVideo.src = URL.createObjectURL(file);
+    previewVideo.classList.add("ready");
+    emptyPreview.classList.add("hidden");
+    videoAssetName.textContent = file.name;
+    previewMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
+    sourcePathInput.placeholder = `请粘贴这个文件在客户电脑里的完整路径：${file.name}`;
+  } else if (file.type.startsWith("audio/")) {
+    musicAssetName.textContent = file.name;
+    musicPathInput.placeholder = `请粘贴这个音乐在客户电脑里的完整路径：${file.name}`;
+  } else if (file.type.startsWith("image/")) {
+    stickerAssetName.textContent = file.name;
+    stickerPathInput.placeholder = `请粘贴这个图片在客户电脑里的完整路径：${file.name}`;
+  }
+  updateTimelineAssets();
+}
+
+function updateTimelineAssets() {
+  audioWave.classList.toggle("has-audio", Boolean(musicPathInput.value.trim() || musicFileInput.files?.[0]));
+}
+
+function formatClock(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds || 0));
+  const h = Math.floor(safeSeconds / 3600);
+  const m = Math.floor((safeSeconds % 3600) / 60);
+  const s = Math.floor(safeSeconds % 60);
+  return [h, m, s].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
 function applyEffect(effect) {
