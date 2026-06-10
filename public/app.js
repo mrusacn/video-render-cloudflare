@@ -37,10 +37,17 @@ const saturationInput = document.querySelector("#saturationInput");
 const volumeInput = document.querySelector("#volumeInput");
 const muteInput = document.querySelector("#muteInput");
 const stickerPathInput = document.querySelector("#stickerPathInput");
+const stickerFileInput = document.querySelector("#stickerFileInput");
+const stickerAssetName = document.querySelector("#stickerAssetName");
 const stickerPositionInput = document.querySelector("#stickerPositionInput");
 const stickerScaleInput = document.querySelector("#stickerScaleInput");
 const musicPathInput = document.querySelector("#musicPathInput");
+const musicFileInput = document.querySelector("#musicFileInput");
+const musicAssetName = document.querySelector("#musicAssetName");
 const musicVolumeInput = document.querySelector("#musicVolumeInput");
+const backgroundPathInput = document.querySelector("#backgroundPathInput");
+const backgroundFileInput = document.querySelector("#backgroundFileInput");
+const backgroundAssetName = document.querySelector("#backgroundAssetName");
 const templateInput = document.querySelector("#templateInput");
 const introTextInput = document.querySelector("#introTextInput");
 const outroTextInput = document.querySelector("#outroTextInput");
@@ -101,6 +108,27 @@ sourceInput.addEventListener("change", () => {
   previewVideo.addEventListener("loadedmetadata", renderTimeline, { once: true });
 });
 
+stickerFileInput.addEventListener("change", () => {
+  const file = stickerFileInput.files?.[0];
+  if (!file) return;
+  stickerAssetName.textContent = file.name;
+  stickerPathInput.placeholder = `请粘贴这个图片在客户电脑里的完整路径：${file.name}`;
+});
+
+musicFileInput.addEventListener("change", () => {
+  const file = musicFileInput.files?.[0];
+  if (!file) return;
+  musicAssetName.textContent = file.name;
+  musicPathInput.placeholder = `请粘贴这个音乐在客户电脑里的完整路径：${file.name}`;
+});
+
+backgroundFileInput.addEventListener("change", () => {
+  const file = backgroundFileInput.files?.[0];
+  if (!file) return;
+  backgroundAssetName.textContent = file.name;
+  backgroundPathInput.placeholder = `请粘贴这个背景图在客户电脑里的完整路径：${file.name}`;
+});
+
 captionInput.addEventListener("input", updateCaption);
 titleInput.addEventListener("input", syncProjectTitle);
 previewVideo.addEventListener("timeupdate", updateCaption);
@@ -148,6 +176,7 @@ form.addEventListener("submit", async (event) => {
   payload.stickerScale = Number(stickerScaleInput.value);
   payload.musicPath = musicPathInput.value.trim();
   payload.musicVolume = Number(musicVolumeInput.value);
+  payload.backgroundPath = backgroundPathInput.value.trim();
   payload.template = templateInput.value;
   payload.introText = introTextInput.value.trim();
   payload.outroText = outroTextInput.value.trim();
@@ -251,6 +280,7 @@ function renderJobs(jobs) {
             ${edit.subtitles?.length ? `<div class="job-notes">字幕段数：${edit.subtitles.length}</div>` : ""}
             ${edit.stickerPath ? `<div class="job-notes">贴纸：${escapeHtml(edit.stickerPath)}</div>` : ""}
             ${edit.musicPath ? `<div class="job-notes">背景音乐：${escapeHtml(edit.musicPath)}</div>` : ""}
+            ${edit.backgroundPath ? `<div class="job-notes">背景图片：${escapeHtml(edit.backgroundPath)}</div>` : ""}
             ${edit.template && edit.template !== "none" ? `<div class="job-notes">模板：${escapeHtml(edit.template)}</div>` : ""}
             ${job.notes ? `<div class="job-notes">${escapeHtml(job.notes)}</div>` : ""}
             <div class="progress-shell" aria-label="渲染进度">

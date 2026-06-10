@@ -113,6 +113,7 @@ async function createResult(job) {
       `Audio: volume=${job.edit?.volume ?? 1}, muted=${Boolean(job.edit?.muted)}`,
       `Sticker: ${job.edit?.stickerPath || ""}`,
       `Music: ${job.edit?.musicPath || ""}`,
+      `Background: ${job.edit?.backgroundPath || ""}`,
       `Template: ${job.edit?.template || "none"}, intro=${job.edit?.introText || ""}, outro=${job.edit?.outroText || ""}`,
       `Notes: ${job.notes || ""}`,
       "",
@@ -133,8 +134,10 @@ async function renderWithFfmpeg(job, mp4Path) {
   const args = ["-y"];
   const stickerPath = String(job.edit?.stickerPath || "").trim();
   const musicPath = String(job.edit?.musicPath || "").trim();
+  const backgroundPath = String(job.edit?.backgroundPath || "").trim();
   const hasSticker = Boolean(stickerPath);
   const hasMusic = Boolean(musicPath);
+  const hasBackground = Boolean(backgroundPath);
 
   if (trimStart > 0) {
     args.push("-ss", String(trimStart));
@@ -143,8 +146,17 @@ async function renderWithFfmpeg(job, mp4Path) {
   args.push("-i", sourcePath);
 
   let nextInputIndex = 1;
+  let backgroundInputIndex = -1;
   let stickerInputIndex = -1;
   let musicInputIndex = -1;
+
+  if (hasBackground) {
+    const resolvedBackground = resolve(backgroundPath);
+    await assertFileExists(resolvedBackground);
+    backgroundInputIndex = nextInputIndex;
+    nextInputIndex += 1;
+    args.push("-loop", "1", "-i", resolvedBackground);
+  }
 
   if (hasSticker) {
     const resolvedSticker = resolve(stickerPath);
@@ -170,6 +182,7 @@ async function renderWithFfmpeg(job, mp4Path) {
     height,
     duration,
     edit: job.edit || {},
+    backgroundInputIndex,
     stickerInputIndex,
     musicInputIndex
   });
@@ -205,10 +218,20 @@ function getPresetSize(preset) {
   return { width: 1080, height: 1920 };
 }
 
-function buildFilterGraph({ width, height, duration, edit, stickerInputIndex, musicInputIndex }) {
+function buildFilterGraph({ width, height, duration, edit, backgroundInputIndex, stickerInputIndex, musicInputIndex }) {
   const videoFilters = buildVideoFilters({ width, height, duration, edit });
-  const parts = [`[0:v]${videoFilters.join(",")}[v0]`];
+  const parts = [];
   let videoLabel = "v0";
+
+  if (backgroundInputIndex > -1) {
+    const afterFitFilters = videoFilters.slice(2);
+    parts.push(`[${backgroundInputIndex}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1[bg]`);
+    parts.push(`[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,setsar=1[mainfit]`);
+    parts.push(`[bg][mainfit]overlay=(W-w)/2:(H-h)/2[base]`);
+    parts.push(afterFitFilters.length ? `[base]${afterFitFilters.join(",")}[v0]` : "[base]copy[v0]");
+  } else {
+    parts.push(`[0:v]${videoFilters.join(",")}[v0]`);
+  }
 
   if (stickerInputIndex > -1) {
     const stickerWidth = Math.round(width * (clampNumber(edit.stickerScale, 8, 60, 22) / 100));

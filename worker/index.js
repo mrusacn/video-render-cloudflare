@@ -59,6 +59,7 @@ async function handleApi(request, env, url) {
         stickerScale: clampNumber(input.stickerScale, 8, 60, 22),
         musicPath: String(input.musicPath || "").trim().slice(0, 1000),
         musicVolume: clampNumber(input.musicVolume, 0, 2, 0.6),
+        backgroundPath: String(input.backgroundPath || "").trim().slice(0, 1000),
         template: sanitizeChoice(input.template, ["none", "clean", "dark", "brand"], "none"),
         introText: String(input.introText || "").trim().slice(0, 80),
         outroText: String(input.outroText || "").trim().slice(0, 80),

@@ -56,13 +56,29 @@
 
           <section class="asset-card">
             <h3>素材导入</h3>
+            <label class="upload-button compact-upload">
+              打开贴纸/图片
+              <input id="stickerFileInput" type="file" accept="image/*" />
+            </label>
             <label>
               贴纸/图片路径
               <input id="stickerPathInput" name="stickerPath" placeholder="C:\Users\Administrator\Pictures\logo.png" />
             </label>
+            <label class="upload-button compact-upload">
+              打开背景音乐
+              <input id="musicFileInput" type="file" accept="audio/*" />
+            </label>
             <label>
               背景音乐路径
               <input id="musicPathInput" name="musicPath" placeholder="C:\Users\Administrator\Music\bgm.mp3" />
+            </label>
+            <label class="upload-button compact-upload">
+              打开背景图片
+              <input id="backgroundFileInput" type="file" accept="image/*" />
+            </label>
+            <label>
+              背景图片路径
+              <input id="backgroundPathInput" name="backgroundPath" placeholder="C:\Users\Administrator\Pictures\background.jpg" />
             </label>
           </section>
 
@@ -73,15 +89,15 @@
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview music-thumb">♪</div>
-              <span>背景音乐</span>
+              <span id="musicAssetName">背景音乐</span>
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview sticker-thumb">✦</div>
-              <span>贴纸图片</span>
+              <span id="stickerAssetName">贴纸图片</span>
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview template-thumb">T</div>
-              <span>片头片尾</span>
+              <span id="backgroundAssetName">背景图片</span>
             </article>
           </section>
         </aside>
