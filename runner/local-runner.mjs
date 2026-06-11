@@ -1,4 +1,4 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
@@ -7,16 +7,24 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const root = fileURLToPath(new URL("..", import.meta.url));
 const outputDir = resolve(process.env.OUTPUT_DIR || join(root, "outputs"));
+const workspaceRoot = resolve(process.env.WORKSPACE_DIR || "C:\\CloudCutStudio");
+const projectsDir = join(workspaceRoot, "Projects");
+const assetLibraryDir = join(workspaceRoot, "AssetLibrary");
+const autosaveFile = join(projectsDir, "current-project.json");
 const apiBase = process.env.API_BASE || "http://localhost:8787";
 const runnerToken = process.env.RUNNER_TOKEN || "dev-token";
 const runnerId = process.env.RUNNER_ID || `local-${crypto.randomUUID().slice(0, 8)}`;
 const pollMs = Number(process.env.POLL_MS || 3000);
 let ffmpegAvailable;
 let heartbeatInFlight = false;
+let lastSavedProjectAt = "";
 
+await ensureLocalWorkspace();
 console.log(`Local video runner started: ${runnerId}`);
 console.log(`Polling: ${apiBase}`);
 console.log(`Outputs: ${outputDir}`);
+console.log(`Workspace: ${workspaceRoot}`);
+console.log(`Asset library: ${assetLibraryDir}`);
 
 heartbeat().catch((error) => console.error(formatError(error)));
 setInterval(() => {
@@ -25,6 +33,7 @@ setInterval(() => {
 
 while (true) {
   try {
+    await syncProjectDraft().catch((error) => console.error(formatError(error)));
     const job = await claimJob();
     if (job) {
       await renderJob(job);
@@ -40,13 +49,25 @@ async function heartbeat() {
   heartbeatInFlight = true;
   try {
     const capabilities = [(await hasFfmpeg()) ? "ffmpeg" : "dry-run"];
+    const assets = await scanAssetLibrary();
     const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
       method: "POST",
       headers: {
         "authorization": `Bearer ${runnerToken}`,
         "content-type": "application/json"
       },
-      body: JSON.stringify({ runnerId, version: "0.1.0", capabilities })
+      body: JSON.stringify({
+        runnerId,
+        version: "0.1.0",
+        capabilities,
+        workspace: {
+          root: workspaceRoot,
+          projectsDir,
+          assetLibraryDir,
+          autosaveFile
+        },
+        assets
+      })
     });
 
     if (!response.ok) {
@@ -55,6 +76,80 @@ async function heartbeat() {
   } finally {
     heartbeatInFlight = false;
   }
+}
+
+async function ensureLocalWorkspace() {
+  await mkdir(outputDir, { recursive: true });
+  await mkdir(projectsDir, { recursive: true });
+  await mkdir(assetLibraryDir, { recursive: true });
+  await Promise.all(
+    ["Videos", "Images", "Music", "Stickers", "Backgrounds"].map((name) =>
+      mkdir(join(assetLibraryDir, name), { recursive: true })
+    )
+  );
+}
+
+async function scanAssetLibrary() {
+  await ensureLocalWorkspace();
+  const files = [];
+  await walkAssetDir(assetLibraryDir, files);
+  const assets = files.slice(0, 240).map((filePath) => ({
+    path: filePath,
+    name: fileNameFromPath(filePath),
+    type: detectAssetType(filePath)
+  }));
+  return {
+    root: assetLibraryDir,
+    scannedAt: new Date().toISOString(),
+    counts: {
+      total: assets.length,
+      video: assets.filter((asset) => asset.type === "video").length,
+      audio: assets.filter((asset) => asset.type === "audio").length,
+      image: assets.filter((asset) => asset.type === "image").length
+    },
+    items: assets
+  };
+}
+
+async function walkAssetDir(dir, files) {
+  if (files.length >= 240) return;
+  let entries = [];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const filePath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await walkAssetDir(filePath, files);
+    } else if (isSupportedAsset(filePath)) {
+      files.push(filePath);
+    }
+    if (files.length >= 240) return;
+  }
+}
+
+async function syncProjectDraft() {
+  const response = await fetch(`${apiBase}/api/runner/project-sync`, {
+    headers: {
+      "authorization": `Bearer ${runnerToken}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Project sync failed: ${response.status} ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  const project = data.project;
+  if (!project?.savedAt || project.savedAt === lastSavedProjectAt) return;
+
+  await ensureLocalWorkspace();
+  const content = JSON.stringify(project, null, 2);
+  await writeFile(autosaveFile, content, "utf8");
+  await writeFile(join(projectsDir, `${safeFileName(project.projectName || "CloudCut-project")}.json`), content, "utf8");
+  lastSavedProjectAt = project.savedAt;
 }
 
 async function claimJob() {
@@ -378,6 +473,27 @@ function escapeFfmpegText(value) {
     .replaceAll(":", "\\:")
     .replaceAll("'", "\\'")
     .replaceAll("%", "\\%");
+}
+
+function isSupportedAsset(filePath) {
+  return /\.(mp4|mov|mkv|webm|mp3|wav|m4a|aac|flac|png|jpe?g|webp|gif)$/i.test(filePath);
+}
+
+function detectAssetType(filePath) {
+  if (/\.(mp4|mov|mkv|webm)$/i.test(filePath)) return "video";
+  if (/\.(mp3|wav|m4a|aac|flac)$/i.test(filePath)) return "audio";
+  return "image";
+}
+
+function fileNameFromPath(value) {
+  return String(value || "").split(/[\\/]/).filter(Boolean).pop() || "";
+}
+
+function safeFileName(value) {
+  return String(value || "CloudCut-project")
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+    .trim()
+    .slice(0, 80) || "CloudCut-project";
 }
 
 function sleep(ms) {

@@ -87,19 +87,34 @@
             <article class="asset-thumb selected">
               <div class="thumb-preview video-thumb">▶</div>
               <span id="videoAssetName">等待上传</span>
+              <button class="asset-use-button" data-add-asset="video" type="button">添加到时间线</button>
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview music-thumb">♪</div>
               <span id="musicAssetName">背景音乐</span>
+              <button class="asset-use-button" data-add-asset="audio" type="button">添加到时间线</button>
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview sticker-thumb">✦</div>
               <span id="stickerAssetName">贴纸图片</span>
+              <button class="asset-use-button" data-add-asset="sticker" type="button">添加到画面</button>
             </article>
             <article class="asset-thumb">
               <div class="thumb-preview template-thumb">T</div>
               <span id="backgroundAssetName">背景图片</span>
+              <button class="asset-use-button" data-add-asset="background" type="button">设为背景</button>
             </article>
+          </section>
+
+          <section class="local-workspace-card">
+            <div>
+              <h3>本地工作区</h3>
+              <p id="localWorkspaceState">等待本地助手扫描素材库...</p>
+              <p id="localAutosaveState">项目自动保存：等待启动</p>
+            </div>
+            <div id="scannedAssetsList" class="scanned-assets-list">
+              <div class="empty">把素材放入本地素材库文件夹后会显示在这里。</div>
+            </div>
           </section>
           </section>
 
@@ -234,7 +249,7 @@
             <div class="timeline-body">
               <div id="playhead" class="playhead"></div>
               <div class="timeline-lanes">
-                <div id="dropLane" class="lane drop-lane"><span>Drag and drop media here</span></div>
+                <div id="dropLane" class="lane drop-lane"><span id="dropLaneText">Drag and drop media here</span></div>
                 <div class="lane video-lane">
                   <span class="lane-label">视频</span>
                   <div id="clipBar" class="clip-bar"></div>

@@ -16,6 +16,10 @@ const refreshBtn = document.querySelector("#refreshBtn");
 const sourceInput = document.querySelector("#sourceInput");
 const sourcePathInput = document.querySelector("#sourcePathInput");
 const videoAssetName = document.querySelector("#videoAssetName");
+const assetUseButtons = [...document.querySelectorAll("[data-add-asset]")];
+const localWorkspaceState = document.querySelector("#localWorkspaceState");
+const localAutosaveState = document.querySelector("#localAutosaveState");
+const scannedAssetsList = document.querySelector("#scannedAssetsList");
 const trimStartInput = document.querySelector("#trimStartInput");
 const trimEndInput = document.querySelector("#trimEndInput");
 const previewVideo = document.querySelector("#previewVideo");
@@ -44,6 +48,7 @@ const zoomOutBtn = document.querySelector("#zoomOutBtn");
 const zoomInBtn = document.querySelector("#zoomInBtn");
 const timelineZoomInput = document.querySelector("#timelineZoomInput");
 const dropLane = document.querySelector("#dropLane");
+const dropLaneText = document.querySelector("#dropLaneText");
 const audioWave = document.querySelector("#audioWave");
 const brightnessInput = document.querySelector("#brightnessInput");
 const contrastInput = document.querySelector("#contrastInput");
@@ -74,10 +79,27 @@ const transcriptText = document.querySelector("#transcriptText");
 const transcriptToCaptionsBtn = document.querySelector("#transcriptToCaptionsBtn");
 
 const accessCodeKey = "cloud-video-studio-access-code";
+const projectIdKey = "cloud-video-studio-project-id";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
+let projectId = localStorage.getItem(projectIdKey) || makeId();
 let selectedSource = null;
 let markers = [];
 let lastRunnerOnlineAt = 0;
+let autoSaveInFlight = false;
+
+localStorage.setItem(projectIdKey, projectId);
+const importedAssets = {
+  video: false,
+  audio: false,
+  sticker: false,
+  background: false
+};
+const timelineAssets = {
+  video: false,
+  audio: false,
+  sticker: false,
+  background: false
+};
 let subtitles = [
   { id: makeId(), start: 0, end: 3, text: "" }
 ];
@@ -126,11 +148,14 @@ sourceInput.addEventListener("change", () => {
   emptyPreview.classList.add("hidden");
   previewMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
   videoAssetName.textContent = file.name;
+  importedAssets.video = true;
+  timelineAssets.video = false;
   sourcePathInput.placeholder = `请粘贴这个文件在客户电脑里的完整路径：${file.name}`;
   if (!titleInput.value) {
     titleInput.value = file.name.replace(/\.[^.]+$/, "");
   }
   syncProjectTitle();
+  updateTimelineAssets();
   previewVideo.addEventListener("loadedmetadata", renderTimeline, { once: true });
 });
 
@@ -138,21 +163,42 @@ stickerFileInput.addEventListener("change", () => {
   const file = stickerFileInput.files?.[0];
   if (!file) return;
   stickerAssetName.textContent = file.name;
+  importedAssets.sticker = true;
+  timelineAssets.sticker = false;
   stickerPathInput.placeholder = `请粘贴这个图片在客户电脑里的完整路径：${file.name}`;
+  updateTimelineAssets();
 });
 
 musicFileInput.addEventListener("change", () => {
   const file = musicFileInput.files?.[0];
   if (!file) return;
   musicAssetName.textContent = file.name;
+  importedAssets.audio = true;
+  timelineAssets.audio = false;
   musicPathInput.placeholder = `请粘贴这个音乐在客户电脑里的完整路径：${file.name}`;
+  updateTimelineAssets();
 });
 
 backgroundFileInput.addEventListener("change", () => {
   const file = backgroundFileInput.files?.[0];
   if (!file) return;
   backgroundAssetName.textContent = file.name;
+  importedAssets.background = true;
+  timelineAssets.background = false;
   backgroundPathInput.placeholder = `请粘贴这个背景图在客户电脑里的完整路径：${file.name}`;
+  updateTimelineAssets();
+});
+
+[
+  [sourcePathInput, "video"],
+  [musicPathInput, "audio"],
+  [stickerPathInput, "sticker"],
+  [backgroundPathInput, "background"]
+].forEach(([input, type]) => {
+  input.addEventListener("input", () => {
+    importedAssets[type] = Boolean(input.value.trim()) || importedAssets[type];
+    updateTimelineAssets();
+  });
 });
 
 captionInput.addEventListener("input", updateCaption);
@@ -187,6 +233,9 @@ dropLane.addEventListener("dragover", (event) => {
 });
 dropLane.addEventListener("dragleave", () => dropLane.classList.remove("drag-over"));
 dropLane.addEventListener("drop", handleTimelineDrop);
+assetUseButtons.forEach((button) => {
+  button.addEventListener("click", () => addAssetToTimeline(button.dataset.addAsset));
+});
 addSubtitleBtn.addEventListener("click", () => {
   const last = subtitles.at(-1);
   const start = last ? Number(last.end || 0) : 0;
@@ -251,6 +300,42 @@ muteInput.addEventListener("change", updatePreviewAudio);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const payload = collectProjectPayload();
+  await api("/api/jobs", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  await refreshAll();
+});
+
+async function autoSaveProject() {
+  if (autoSaveInFlight || !accessCode) return;
+  autoSaveInFlight = true;
+  try {
+    const projectName = titleInput.value.trim() || "未命名项目";
+    const response = await api("/api/local/project", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        projectName,
+        data: {
+          ...collectProjectPayload(),
+          markers,
+          timelineAssets,
+          importedAssets
+        }
+      })
+    });
+    const savedAt = response.project?.savedAt ? formatTime(response.project.savedAt) : "刚刚";
+    localAutosaveState.textContent = `项目自动保存：${savedAt}，本地助手会写入 Projects 文件夹`;
+  } catch (error) {
+    localAutosaveState.textContent = `项目自动保存失败：${error.message}`;
+  } finally {
+    autoSaveInFlight = false;
+  }
+}
+
+function collectProjectPayload() {
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
   delete payload.source;
@@ -277,12 +362,8 @@ form.addEventListener("submit", async (event) => {
   payload.outroText = outroTextInput.value.trim();
   payload.templateSeconds = Number(templateSecondsInput.value);
   payload.localAssetRequired = Boolean(selectedSource || sourcePath);
-  await api("/api/jobs", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
-  await refreshAll();
-});
+  return payload;
+}
 
 async function showStudio() {
   loginView.classList.add("hidden");
@@ -293,8 +374,10 @@ async function showStudio() {
   updatePreviewAudio();
   syncProjectTitle();
   renderSubtitles();
+  await autoSaveProject();
   await refreshAll();
   setInterval(refreshAll, 3000);
+  setInterval(autoSaveProject, 10000);
 }
 
 async function api(path, options = {}) {
@@ -315,12 +398,14 @@ async function api(path, options = {}) {
 
 async function refreshAll() {
   try {
-    const [jobsData, runnerData] = await Promise.all([
+    const [jobsData, runnerData, workspaceData] = await Promise.all([
       api("/api/jobs"),
-      api("/api/runner/status")
+      api("/api/runner/status"),
+      api("/api/local/workspace")
     ]);
     renderJobs(jobsData.jobs);
     renderRunner(runnerData.runner);
+    renderLocalWorkspace(workspaceData);
   } catch (error) {
     summaryText.textContent = error.message;
   }
@@ -349,6 +434,78 @@ function renderRunner(runner) {
   installBox.classList.remove("connected");
   installBox.querySelector("strong").textContent = "本地渲染助手未连接";
   installBox.querySelector("span").textContent = "如果导出任务一直排队，请让客户把本项目文件夹放到电脑里，设置 Cloudflare 地址和密钥，然后运行 start-runner.cmd。";
+}
+
+function renderLocalWorkspace(data) {
+  const workspace = data?.workspace;
+  const assets = data?.assets || {};
+  const items = Array.isArray(assets.items) ? assets.items : [];
+  if (!workspace) {
+    localWorkspaceState.textContent = "本地工作区未连接。运行 start-runner.cmd 后会自动创建 C:\\CloudCutStudio。";
+    scannedAssetsList.innerHTML = `<div class="empty">等待本地助手扫描素材库。</div>`;
+    return;
+  }
+
+  const counts = assets.counts || {};
+  localWorkspaceState.textContent = `素材库：${workspace.assetLibraryDir} · 视频 ${counts.video || 0} · 音乐 ${counts.audio || 0} · 图片 ${counts.image || 0}`;
+  if (!items.length) {
+    scannedAssetsList.innerHTML = `<div class="empty">把素材放进 ${escapeHtml(workspace.assetLibraryDir)} 后，等待几秒会自动出现。</div>`;
+    return;
+  }
+
+  scannedAssetsList.innerHTML = items
+    .slice(0, 24)
+    .map((asset) => {
+      const action = asset.type === "video" ? "加入视频轨" : asset.type === "audio" ? "加入音频轨" : "加入画面";
+      return `
+        <button class="scanned-asset" type="button" data-scanned-type="${escapeHtml(asset.type)}" data-scanned-path="${escapeHtml(asset.path)}" data-scanned-name="${escapeHtml(asset.name)}">
+          <span>${asset.type === "video" ? "▶" : asset.type === "audio" ? "♪" : "▧"}</span>
+          <strong>${escapeHtml(asset.name)}</strong>
+          <small>${action}</small>
+        </button>
+      `;
+    })
+    .join("");
+
+  scannedAssetsList.querySelectorAll("[data-scanned-path]").forEach((button) => {
+    button.addEventListener("click", () => useScannedAsset(button.dataset));
+  });
+}
+
+function useScannedAsset(asset) {
+  const type = asset.scannedType;
+  const path = asset.scannedPath || "";
+  const name = asset.scannedName || fileNameFromPath(path);
+  if (type === "video") {
+    sourcePathInput.value = path;
+    videoAssetName.textContent = name;
+    importedAssets.video = true;
+    timelineAssets.video = true;
+    if (!titleInput.value || titleInput.value === "20260610_project") {
+      titleInput.value = name.replace(/\.[^.]+$/, "");
+      syncProjectTitle();
+    }
+  } else if (type === "audio") {
+    musicPathInput.value = path;
+    musicAssetName.textContent = name;
+    importedAssets.audio = true;
+    timelineAssets.audio = true;
+  } else {
+    const isBackground = /[\\/]Backgrounds[\\/]/i.test(path);
+    if (isBackground) {
+      backgroundPathInput.value = path;
+      backgroundAssetName.textContent = name;
+      importedAssets.background = true;
+      timelineAssets.background = true;
+    } else {
+      stickerPathInput.value = path;
+      stickerAssetName.textContent = name;
+      importedAssets.sticker = true;
+      timelineAssets.sticker = true;
+    }
+  }
+  updateTimelineAssets();
+  autoSaveProject();
 }
 
 function activateTool(name) {
@@ -590,18 +747,71 @@ function handleTimelineDrop(event) {
     videoAssetName.textContent = file.name;
     previewMeta.textContent = `${file.name} · ${formatBytes(file.size)}`;
     sourcePathInput.placeholder = `请粘贴这个文件在客户电脑里的完整路径：${file.name}`;
+    importedAssets.video = true;
+    timelineAssets.video = true;
   } else if (file.type.startsWith("audio/")) {
     musicAssetName.textContent = file.name;
     musicPathInput.placeholder = `请粘贴这个音乐在客户电脑里的完整路径：${file.name}`;
+    importedAssets.audio = true;
+    timelineAssets.audio = true;
   } else if (file.type.startsWith("image/")) {
     stickerAssetName.textContent = file.name;
     stickerPathInput.placeholder = `请粘贴这个图片在客户电脑里的完整路径：${file.name}`;
+    importedAssets.sticker = true;
+    timelineAssets.sticker = true;
+  }
+  updateTimelineAssets();
+}
+
+function addAssetToTimeline(type) {
+  if (!importedAssets[type] && !assetPathExists(type)) {
+    dropLaneText.textContent = "请先导入素材或填写素材路径";
+    return;
+  }
+  timelineAssets[type] = true;
+  if (type === "video" && selectedSource) {
+    previewVideo.src = URL.createObjectURL(selectedSource);
+    previewVideo.classList.add("ready");
+    emptyPreview.classList.add("hidden");
   }
   updateTimelineAssets();
 }
 
 function updateTimelineAssets() {
-  audioWave.classList.toggle("has-audio", Boolean(musicPathInput.value.trim() || musicFileInput.files?.[0]));
+  const videoReady = timelineAssets.video || Boolean(sourcePathInput.value.trim());
+  const audioReady = timelineAssets.audio || Boolean(musicPathInput.value.trim());
+  const stickerReady = timelineAssets.sticker || Boolean(stickerPathInput.value.trim());
+  const backgroundReady = timelineAssets.background || Boolean(backgroundPathInput.value.trim());
+
+  clipBar.classList.toggle("is-empty", !videoReady);
+  clipBar.textContent = videoReady ? (videoAssetName.textContent || "视频素材") : "";
+  audioWave.classList.toggle("has-audio", audioReady);
+  audioWave.textContent = audioReady ? (musicAssetName.textContent || "背景音乐") : "未添加音频";
+  dropLane.classList.toggle("has-overlay-assets", stickerReady || backgroundReady);
+  dropLaneText.textContent = [
+    videoReady ? "视频已在时间线" : "拖入或添加视频素材",
+    stickerReady ? "贴纸已加入画面" : "",
+    backgroundReady ? "背景已设置" : ""
+  ].filter(Boolean).join(" · ");
+  assetUseButtons.forEach((button) => {
+    const type = button.dataset.addAsset;
+    button.classList.toggle("is-used", Boolean(timelineAssets[type]));
+    if (timelineAssets[type]) {
+      button.textContent = type === "sticker" ? "已加入画面" : type === "background" ? "已设为背景" : "已在时间线";
+    } else {
+      button.textContent = type === "sticker" ? "添加到画面" : type === "background" ? "设为背景" : "添加到时间线";
+    }
+  });
+}
+
+function assetPathExists(type) {
+  const map = {
+    video: sourcePathInput,
+    audio: musicPathInput,
+    sticker: stickerPathInput,
+    background: backgroundPathInput
+  };
+  return Boolean(map[type]?.value.trim());
 }
 
 function formatClock(seconds) {

@@ -312,6 +312,20 @@ p {
   font-size: 12px;
 }
 
+.asset-use-button {
+  min-height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.asset-use-button.is-used {
+  background: #18794e;
+}
+
 .thumb-preview {
   height: 68px;
   border-radius: 8px;
@@ -342,6 +356,70 @@ p {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.local-workspace-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #242832;
+}
+
+.local-workspace-card p {
+  margin-top: 6px;
+  color: #aeb8c6;
+  overflow-wrap: anywhere;
+}
+
+.scanned-assets-list {
+  display: grid;
+  gap: 7px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.scanned-asset {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #343945;
+  border-radius: 7px;
+  background: #1f232b;
+  color: #edf4fb;
+  padding: 8px;
+  text-align: left;
+}
+
+.scanned-asset:hover {
+  border-color: #1ed7f0;
+}
+
+.scanned-asset span {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #303642;
+  color: #1ed7f0;
+}
+
+.scanned-asset strong {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.scanned-asset small {
+  color: #9eabbc;
+  font-size: 11px;
 }
 
 .editor-main {
@@ -671,6 +749,11 @@ p {
   color: #147d93;
 }
 
+.drop-lane.has-overlay-assets {
+  background: #e8f6ef;
+  color: #18794e;
+}
+
 .lane-label {
   position: absolute;
   left: -92px;
@@ -688,6 +771,20 @@ p {
   height: 32px;
   border-radius: 8px;
   background: linear-gradient(135deg, #24364b, #16735b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clip-bar.is-empty {
+  width: 0;
+  padding: 0;
 }
 
 .subtitle-bars {
@@ -732,10 +829,14 @@ p {
   font-size: 18px;
   letter-spacing: 3px;
   opacity: 0.35;
+  white-space: nowrap;
 }
 
 .audio-wave.has-audio {
   opacity: 1;
+  font-size: 12px;
+  letter-spacing: 0;
+  font-weight: 800;
 }
 
 .quick-tools {

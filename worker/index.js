@@ -85,6 +85,29 @@ async function handleApi(request, env, url) {
     return json({ runner: await getRunnerStatus(env) });
   }
 
+  if (request.method === "GET" && url.pathname === "/api/local/workspace") {
+    authorizeApp(request, env);
+    const heartbeat = await getValue(env, "runner:heartbeat");
+    return json({
+      workspace: heartbeat?.workspace || null,
+      assets: heartbeat?.assets || { items: [], counts: { total: 0, video: 0, audio: 0, image: 0 } },
+      project: await getValue(env, "project:latest")
+    });
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/local/project") {
+    authorizeApp(request, env);
+    const input = await request.json().catch(() => ({}));
+    const project = sanitizeProjectDraft(input);
+    await putValue(env, "project:latest", project);
+    return json({ project });
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/runner/project-sync") {
+    authorizeRunner(request, env);
+    return json({ project: await getValue(env, "project:latest") });
+  }
+
   if (request.method === "POST" && url.pathname === "/api/runner/heartbeat") {
     authorizeRunner(request, env);
     const input = await request.json().catch(() => ({}));
@@ -92,6 +115,8 @@ async function handleApi(request, env, url) {
       runnerId: input.runnerId || "cloud-runner",
       version: input.version || "dev",
       capabilities: Array.isArray(input.capabilities) ? input.capabilities : [],
+      workspace: sanitizeWorkspace(input.workspace),
+      assets: sanitizeAssetLibrary(input.assets),
       checkedAt: new Date().toISOString()
     };
     await putValue(env, "runner:heartbeat", heartbeat);
@@ -183,6 +208,48 @@ function sanitizePatch(patch) {
   if (typeof patch.resultUrl === "string") output.resultUrl = patch.resultUrl;
   if (typeof patch.error === "string") output.error = patch.error.slice(0, 1000);
   return output;
+}
+
+function sanitizeWorkspace(value) {
+  if (!value || typeof value !== "object") return null;
+  return {
+    root: String(value.root || "").slice(0, 1000),
+    projectsDir: String(value.projectsDir || "").slice(0, 1000),
+    assetLibraryDir: String(value.assetLibraryDir || "").slice(0, 1000),
+    autosaveFile: String(value.autosaveFile || "").slice(0, 1000)
+  };
+}
+
+function sanitizeAssetLibrary(value) {
+  const items = Array.isArray(value?.items) ? value.items : [];
+  return {
+    root: String(value?.root || "").slice(0, 1000),
+    scannedAt: String(value?.scannedAt || "").slice(0, 80),
+    counts: {
+      total: clampNumber(value?.counts?.total, 0, 100000, items.length),
+      video: clampNumber(value?.counts?.video, 0, 100000, 0),
+      audio: clampNumber(value?.counts?.audio, 0, 100000, 0),
+      image: clampNumber(value?.counts?.image, 0, 100000, 0)
+    },
+    items: items
+      .map((item) => ({
+        name: String(item?.name || "").slice(0, 240),
+        path: String(item?.path || "").slice(0, 1000),
+        type: sanitizeChoice(item?.type, ["video", "audio", "image"], "image")
+      }))
+      .filter((item) => item.name && item.path)
+      .slice(0, 240)
+  };
+}
+
+function sanitizeProjectDraft(value) {
+  const now = new Date().toISOString();
+  return {
+    projectId: String(value.projectId || "default-project").slice(0, 120),
+    projectName: String(value.projectName || "未命名项目").trim().slice(0, 120),
+    savedAt: now,
+    data: value.data && typeof value.data === "object" ? value.data : {}
+  };
 }
 
 function sanitizeSubtitles(value) {

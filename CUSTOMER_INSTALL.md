@@ -17,6 +17,7 @@ API_BASE=https://你的-cloudflare-worker-地址
 RUNNER_TOKEN=你的运行器密钥
 RUNNER_ID=customer-pc-01
 OUTPUT_DIR=C:\VideoRenderOutputs
+WORKSPACE_DIR=C:\CloudCutStudio
 POLL_MS=3000
 ```
 
@@ -32,4 +33,18 @@ start-runner.cmd
 
 ## 素材文件
 
-当前版本的网站会记录素材文件名和剪辑参数。客户电脑需要能访问对应素材。后续接入 R2 上传后，运行器会自动下载云端素材。
+本地助手启动后会自动创建：
+
+```text
+C:\CloudCutStudio\Projects
+C:\CloudCutStudio\AssetLibrary
+C:\CloudCutStudio\AssetLibrary\Videos
+C:\CloudCutStudio\AssetLibrary\Music
+C:\CloudCutStudio\AssetLibrary\Images
+C:\CloudCutStudio\AssetLibrary\Stickers
+C:\CloudCutStudio\AssetLibrary\Backgrounds
+```
+
+把视频、音乐、图片放进 `AssetLibrary` 下面对应文件夹，网站会自动扫描并显示。项目剪辑信息每 10 秒自动保存，本地文件会写入 `C:\CloudCutStudio\Projects`。
+
+如果安装了 FFmpeg，本地助手会按网页里的开始秒数、结束秒数、导出比例、多段字幕、亮度、对比度、饱和度、音量和静音设置生成 mp4。后续接入 R2 上传后，运行器可以改成自动下载云端素材。
