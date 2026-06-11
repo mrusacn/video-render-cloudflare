@@ -10,6 +10,7 @@ const store = new FileJobStore(join(root, "data", "jobs.json"));
 const port = Number(process.env.PORT || 8787);
 const runnerToken = process.env.RUNNER_TOKEN || "dev-token";
 const appAccessCode = process.env.APP_ACCESS_CODE || "";
+const runnerOnlineWindowMs = 120000;
 let runnerHeartbeat = null;
 
 const mimeTypes = {
@@ -123,7 +124,7 @@ function getRunnerStatus() {
   const ageMs = Date.now() - Date.parse(runnerHeartbeat.checkedAt);
   return {
     ...runnerHeartbeat,
-    online: ageMs < 15000,
+    online: ageMs < runnerOnlineWindowMs,
     ageMs
   };
 }

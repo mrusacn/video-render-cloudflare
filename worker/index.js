@@ -1,5 +1,6 @@
 const memoryJobs = [];
 const memoryValues = new Map();
+const RUNNER_ONLINE_WINDOW_MS = 120000;
 
 export default {
   async fetch(request, env) {
@@ -154,7 +155,7 @@ async function getRunnerStatus(env) {
   const ageMs = Date.now() - Date.parse(heartbeat.checkedAt);
   return {
     ...heartbeat,
-    online: ageMs < 15000,
+    online: ageMs < RUNNER_ONLINE_WINDOW_MS,
     ageMs
   };
 }

@@ -12,14 +12,19 @@ const runnerToken = process.env.RUNNER_TOKEN || "dev-token";
 const runnerId = process.env.RUNNER_ID || `local-${crypto.randomUUID().slice(0, 8)}`;
 const pollMs = Number(process.env.POLL_MS || 3000);
 let ffmpegAvailable;
+let heartbeatInFlight = false;
 
 console.log(`Local video runner started: ${runnerId}`);
 console.log(`Polling: ${apiBase}`);
 console.log(`Outputs: ${outputDir}`);
 
+heartbeat().catch((error) => console.error(formatError(error)));
+setInterval(() => {
+  heartbeat().catch((error) => console.error(formatError(error)));
+}, 10000);
+
 while (true) {
   try {
-    await heartbeat();
     const job = await claimJob();
     if (job) {
       await renderJob(job);
@@ -31,18 +36,24 @@ while (true) {
 }
 
 async function heartbeat() {
-  const capabilities = [(await hasFfmpeg()) ? "ffmpeg" : "dry-run"];
-  const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
-    method: "POST",
-    headers: {
-      "authorization": `Bearer ${runnerToken}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({ runnerId, version: "0.1.0", capabilities })
-  });
+  if (heartbeatInFlight) return;
+  heartbeatInFlight = true;
+  try {
+    const capabilities = [(await hasFfmpeg()) ? "ffmpeg" : "dry-run"];
+    const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${runnerToken}`,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ runnerId, version: "0.1.0", capabilities })
+    });
 
-  if (!response.ok) {
-    throw new Error(`Heartbeat failed: ${response.status} ${await response.text()}`);
+    if (!response.ok) {
+      throw new Error(`Heartbeat failed: ${response.status} ${await response.text()}`);
+    }
+  } finally {
+    heartbeatInFlight = false;
   }
 }
 

@@ -77,6 +77,7 @@ const accessCodeKey = "cloud-video-studio-access-code";
 let accessCode = localStorage.getItem(accessCodeKey) || "";
 let selectedSource = null;
 let markers = [];
+let lastRunnerOnlineAt = 0;
 let subtitles = [
   { id: makeId(), start: 0, end: 3, text: "" }
 ];
@@ -327,11 +328,20 @@ async function refreshAll() {
 
 function renderRunner(runner) {
   if (runner?.online) {
+    lastRunnerOnlineAt = Date.now();
     runnerState.textContent = `本地助手在线：${runner.runnerId}`;
     runnerState.className = "state-pill online";
     installBox.classList.add("connected");
     installBox.querySelector("strong").textContent = "本地渲染助手已连接";
-  installBox.querySelector("span").textContent = "现在可以在网页提交导出任务，客户电脑会自动领取并渲染。";
+    installBox.querySelector("span").textContent = "现在可以在网页提交导出任务，客户电脑会自动领取并渲染。";
+    return;
+  }
+  if (lastRunnerOnlineAt && Date.now() - lastRunnerOnlineAt < 120000) {
+    runnerState.textContent = "本地助手最近在线";
+    runnerState.className = "state-pill online";
+    installBox.classList.add("connected");
+    installBox.querySelector("strong").textContent = "本地渲染助手最近在线";
+    installBox.querySelector("span").textContent = "如果刚打开文件选择窗口或正在渲染，状态可能短暂延迟刷新。";
     return;
   }
   runnerState.textContent = "本地助手未连接";
